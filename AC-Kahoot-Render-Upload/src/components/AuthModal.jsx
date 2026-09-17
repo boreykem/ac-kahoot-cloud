@@ -89,15 +89,14 @@ export default function AuthModal({
 
   const handleSendTelegram = () => {
     const userEmail = currentUser?.email || email;
-    if (!userEmail) return;
-    const cleanEmail = userEmail.replace(/[^a-zA-Z0-9@._-]/g, '');
+    const cleanEmail = userEmail ? userEmail.replace(/[^a-zA-Z0-9@._-]/g, '') : '';
     const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
-    const botUrl = `https://t.me/${username}?start=EMAIL_${cleanEmail}`;
+    const botUrl = cleanEmail ? `https://t.me/${username}?start=EMAIL_${cleanEmail}` : `https://t.me/${username}`;
     
     // Auto-copy full text as backup
     const clientName = currentUser?.name || name || 'លោកគ្រូ/អ្នកគ្រូ';
     const adminName = botConfig?.adminName || 'លោកគ្រូ បូរី';
-    const rawMsg = `សួស្តី${adminName}! ខ្ញុំបាទ/នាងខ្ញុំឈ្មោះ ${clientName} ចង់ទិញ License AC-Kahoot Pro។\n\n📧 ឈ្មោះអ៊ីមែល (Email) គណនីខ្ញុំ៖\n${userEmail}\n\nសូមជួយបង្កើត License Key ជូនខ្ញុំផង។ សូមអរគុណ!`;
+    const rawMsg = `សួស្តី${adminName}! ខ្ញុំបាទ/នាងខ្ញុំឈ្មោះ ${clientName} ចង់ទិញ License AC-Kahoot Pro។\n\n📧 ឈ្មោះអ៊ីមែល (Email) គណនីខ្ញុំ៖\n${userEmail || 'មិនទាន់បានបញ្ចូល'}\n\nសូមជួយបង្កើត License Key ជូនខ្ញុំផង។ សូមអរគុណ!`;
     try { navigator.clipboard.writeText(rawMsg); } catch(e) {}
     
     setCopiedHwid(true);

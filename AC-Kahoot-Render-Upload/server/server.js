@@ -320,6 +320,19 @@ app.post('/api/auth/register', (req, res) => {
   res.json({ success: true, user: safeUser, message: '🎉 បានចុះឈ្មោះបង្កើតគណនីដោយជោគជ័យ!' });
 });
 
+app.post('/api/auth/sync', (req, res) => {
+  const { id, email } = req.body;
+  const users = loadUsers();
+  const user = users.find(u => 
+    (id && u.id === id) || (email && u.email.toLowerCase() === email.toLowerCase().trim())
+  );
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+  const { password: _, ...safeUser } = user;
+  res.json({ success: true, user: safeUser });
+});
+
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   const users = loadUsers();

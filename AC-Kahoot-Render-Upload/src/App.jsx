@@ -44,6 +44,25 @@ export default function App() {
   const [systemLicense, setSystemLicense] = useState(null);
   const [lang, setLang] = useState(localStorage.getItem('app_lang') || 'km');
 
+  const syncUserStatus = async () => {
+    if (!currentUser?.id && !currentUser?.email) return;
+    try {
+      const res = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentUser.id, email: currentUser.email })
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+        saveAccount(data.user);
+        setSavedAccounts(getSavedAccounts());
+      }
+    } catch (e) {
+      console.warn("Could not sync user info", e);
+    }
+  };
+
   const checkLicenseStatus = async () => {
     try {
       const res = await fetch('/api/license/machine-info');
@@ -125,9 +144,10 @@ export default function App() {
       setView('player-join');
     }
 
-    // Fetch Quizzes & License
+    // Fetch Quizzes, License, and Sync User
     fetchQuizzes();
     checkLicenseStatus();
+    syncUserStatus();
   }, []);
 
   const fetchQuizzes = async () => {
