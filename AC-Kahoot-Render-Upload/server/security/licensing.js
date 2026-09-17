@@ -139,7 +139,7 @@ export function verifyCryptographicKey(licenseKey, targetHwid = null) {
   }
 
   // Recompute Expected Signature
-  const expectedPayload = `${currentHwid}#${planType}#${expiryCode}`;
+  const expectedPayload = `${currentHwid.trim().toUpperCase()}#${planType}#${expiryCode}`;
   const expectedSignature = crypto.createHmac('sha256', MASTER_SECRET)
     .update(expectedPayload)
     .digest('hex')
@@ -150,7 +150,7 @@ export function verifyCryptographicKey(licenseKey, targetHwid = null) {
     return {
       valid: false,
       hardwareMismatch: true,
-      message: '🔒 License Key នេះមិនត្រូវជាមួយកុំព្យូទ័រនេះឡើយ (Hardware ID Mismatch)! មិនអាចយក Key ពីម៉ាស៊ីនផ្សេងមកប្រើបានទេ។'
+      message: '🔒 License Key នេះមិនត្រូវជាមួយអ៊ីមែលនេះឡើយ (Email Mismatch)! មិនអាចយក Key ពីគណនីផ្សេងមកប្រើបានទេ។'
     };
   }
 
