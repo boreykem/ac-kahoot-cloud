@@ -17,6 +17,7 @@
     "localtunnel": "^2.0.2",
     "lucide-react": "^1.16.0",
     "mammoth": "^1.12.2",
+    "mongoose": "^9.10.1",
     "multer": "^2.3.0",
     "nodemailer": "^9.0.6",
     "pdf-parse": "^2.4.5",

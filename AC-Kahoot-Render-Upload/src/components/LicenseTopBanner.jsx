@@ -84,7 +84,7 @@ export default function LicenseTopBanner({
 
   const handleBuyNow = () => {
     sound.playClick();
-    const cleanEmail = (currentUser?.email || '').replace(/[^a-zA-Z0-9@._-]/g, '');
+    const cleanHwid = (machineHwid || machineLicense?.hwid || '').replace(/[^a-zA-Z0-9_-]/g, '');
     const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
     let link = announcement?.buttonLink || `https://t.me/${username}`;
     
@@ -92,9 +92,8 @@ export default function LicenseTopBanner({
       link = link.replace('ac_mart_programer_developer_bot', botConfig.botUsername);
     }
     
-    if (link.includes('t.me') && cleanEmail && !link.includes('start=')) {
-      const b64Email = btoa(cleanEmail).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      link += (link.includes('?') ? '&' : '?') + `start=E_${b64Email}`;
+    if (link.includes('t.me') && cleanHwid && !link.includes('start=')) {
+      link += (link.includes('?') ? '&' : '?') + `start=HWID_${cleanHwid}`;
     }
     window.open(link, '_blank');
   };
@@ -166,4 +165,3 @@ export default function LicenseTopBanner({
     </div>
   );
 }
-
