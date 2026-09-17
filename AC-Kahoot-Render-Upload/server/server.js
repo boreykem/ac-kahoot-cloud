@@ -863,7 +863,7 @@ app.post('/api/license/activate', (req, res) => {
   const cleanKey = licenseKey.trim().toUpperCase();
 
   // First verify against cryptographic signature
-  const cryptoVerify = verifyCryptographicKey(cleanKey, getHardwareFingerprint());
+  const cryptoVerify = verifyCryptographicKey(cleanKey, email.trim());
   if (cryptoVerify.valid) {
     const saveResult = saveActiveLicense(cleanKey, email);
     const users = loadUsers();
