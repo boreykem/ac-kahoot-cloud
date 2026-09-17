@@ -134,15 +134,6 @@ export default function LicenseTopBanner({
 
         {/* Right Action Buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={handleEnterKey}
-            className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/40 hover:bg-black/60 text-yellow-300 border border-yellow-400/40 text-xs font-bold transition-all hover:scale-105 shadow-sm"
-            title={lang === 'km' ? 'បញ្ចូលលេខកូដ License Key' : 'Enter License Key'}
-          >
-            <KeyRound className="w-3 h-3 text-yellow-400" />
-            <span>{lang === 'km' ? 'បញ្ចូល Key' : 'Enter Key'}</span>
-          </button>
 
           <button
             type="button"
