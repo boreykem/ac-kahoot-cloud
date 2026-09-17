@@ -650,15 +650,15 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                                   </span>
                                 ) : (
                                   <select
-                                    value={u.license || 'free'}
+                                    value={(u.license || 'FREE').toUpperCase()}
                                     onChange={(e) => handleUpdateLicense(u.id, e.target.value)}
                                     className="bg-black/60 border border-purple-400/40 text-yellow-300 rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none"
                                   >
-                                    <option value="free">⚪ ធម្មតា (Free Tier)</option>
+                                    <option value="FREE">⚪ ធម្មតា (Free Tier)</option>
                                     <option value="PRO_LIFETIME">👑 Pro Lifetime (ប្រើមួយជីវិត)</option>
                                     <option value="VIP_SCHOOL">🏫 VIP School Lifetime (សាលារៀន)</option>
-                                    <option value="pro_annual">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
-                                    <option value="pro_monthly">⏳ Pro Monthly (ប្រចាំខែ)</option>
+                                    <option value="PRO_ANNUAL">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
+                                    <option value="PRO_MONTHLY">⏳ Pro Monthly (ប្រចាំខែ)</option>
                                   </select>
                                 )}
                               </td>
