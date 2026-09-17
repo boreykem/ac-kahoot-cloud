@@ -496,20 +496,16 @@ app.post('/api/auth/verify-reset-otp', (req, res) => {
 });
 
 // Admin Reset Password for any teacher
-app.post('/api/admin/users/:id/reset-password', (req, res) => {
+app.post('/api/admin/users/:id/reset-password', async (req, res) => {
   const { id } = req.params;
   const { newPassword } = req.body;
-  if (!newPassword) {
-    return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
-  }
-  const users = loadUsers();
-  const user = users.find(u => u.id === id);
-  if (!user) {
-    return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
-  }
+  if (!newPassword) return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
+  const user = await User.findOne({ id: id });
+  if (!user) return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
+  
   user.password = newPassword.trim();
-  saveUsers(users);
-  res.json({ success: true, message: `បានកំណត់លេខសម្ងាត់ថ្មីសម្រាប់ ${user.name} រួចរាល់!` });
+  await user.save();
+  res.json({ success: true, message: `បានកំណត់លេខសម្ងាត់ថ្មីសម្រាប់ $user.name រួចរាល់!` });
 });
 
 // Master Admin Endpoints
@@ -540,15 +536,14 @@ app.get('/api/admin/users', async (req, res) => {
   res.json({ success: true, users });
 });
 
-app.post('/api/admin/users/:id/license', (req, res) => {
+app.post('/api/admin/users/:id/license', async (req, res) => {
   const { id } = req.params;
   const { license } = req.body;
-  const users = loadUsers();
-  const user = users.find(u => u.id === id);
+  const user = await User.findOne({ id: id });
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
   user.license = license || 'free';
-  saveUsers(users);
+  await user.save();
   res.json({ success: true, user });
 });
 
@@ -793,7 +788,7 @@ app.post('/api/license/deactivate-hwid', (req, res) => {
 app.get('/api/admin/licenses', (req, res) => {
   const licenses = loadLicenses();
   const machineLicense = loadActiveLicense();
-  res.json({ licenses, machineLicense, currentHwid: getHardwareFingerprint() });
+  res.json({ licenses, machineLicense, currentEmail: getHardwareFingerprint() });
 });
 
 // Admin: Generate new cryptographic or standard license keys
@@ -920,15 +915,15 @@ app.post('/api/license/activate', async (req, res) => {
 });
 
 // Admin: Reset / Unlock teacher's Device Binding (Transfer PC)
-app.post('/api/admin/users/:id/reset-device', (req, res) => {
+app.post('/api/admin/users/:id/reset-device', async (req, res) => {
   const { id } = req.params;
-  const users = loadUsers();
-  const user = users.find(u => u.id === id);
+  const user = await User.findOne({ id: id });
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+  
   user.boundDeviceId = null;
   user.boundDeviceName = null;
-  saveUsers(users);
-  res.json({ success: true, message: `បានដោះសោ Device ID សម្រាប់ ${user.name} ដោយជោគជ័យ!` });
+  await user.save();
+  res.json({ success: true, message: `បានដោះសោ Device ID សម្រាប់ $user.name ដោយជោគជ័យ!` });
 });
 
 // REST API Endpoints
@@ -2232,7 +2227,7 @@ app.post('/api/telegram/notify-inquiry', async (req, res) => {
   const username = currentBotPricing.botUsername || 'ac_mart_programer_developer_bot';
   res.json({
     success: true,
-    botUrl: `https://t.me/${username}?start=HWID_${(hwid || '').replace(/[^a-zA-Z0-9_-]/g, '')}`
+    botUrl: `https://t.me/${username}?start=EMAIL_${(hwid || '').replace(/[^a-zA-Z0-9_-]/g, '')}`
   });
 });
 
@@ -2314,7 +2309,7 @@ async function pollTelegramBot() {
             const senderName = msg.from?.first_name || 'លោកគ្រូ/អ្នកគ្រូ';
 
             // Smart HWID detection from text
-            const hwidMatch = text.match(/(?:HWID_|ACK-HWID-|ACK-)([A-Z0-9_-]+)/i);
+            const hwidMatch = text.match(/(?:EMAIL_|ACK-HWID-|ACK-)([A-Z0-9_-]+)/i);
             const extractedHwid = hwidMatch ? hwidMatch[0].replace(/^HWID_/i, '').trim() : '';
 
             // Auto-bind Admin Chat ID if sender is admin or sends /admin
@@ -2331,7 +2326,7 @@ async function pollTelegramBot() {
             if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'price') {
               const parts = text.split(' ');
               const param = parts[1] || '';
-              let hwid = param.replace(/^HWID_/i, '').trim();
+              let hwid = param.replace(/^EMAIL_/i, '').trim();
               if (hwid.toUpperCase() === 'BUY_LICENSE') hwid = '';
               if (!hwid && extractedHwid) hwid = extractedHwid;
 
@@ -2346,9 +2341,9 @@ async function pollTelegramBot() {
 
               let reply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
               reply += `សួស្តី <b>${senderName}</b>! 🙏\n\n`;
-              if (telegramUserStates[chatId].hwid) {
-                reply += `💻 <b>Hardware Machine ID របស់អ្នក៖</b>\n<code>${telegramUserStates[chatId].hwid}</code>\n\n`;
-                reply += `✅ យើងខ្ញុំបានកត់ត្រា Machine ID របស់អ្នករួចរាល់ហើយ!\n\n`;
+              if (telegramUserStates[chatId].email) {
+                reply += `💻 <b>អ៊ីមែល (Email) របស់អ្នក៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
+                reply += `✅ យើងខ្ញុំបានកត់ត្រាអុីមែល របស់អ្នករួចរាល់ហើយ!\n\n`;
               } else {
                 reply += `ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <b>Hardware Machine ID</b> របស់អ្នកមកកាន់ទីនេះ។\n\n`;
               }
@@ -2359,21 +2354,21 @@ async function pollTelegramBot() {
 
               reply += `👉 <i>សូមចុចលើប៊ូតុងគម្រោងខាងក្រោម ដើម្បីទទួល QR Code បង់ប្រាក់៖</i>`;
 
-              const currentHwid = telegramUserStates[chatId].hwid || '';
+              const currentEmail = telegramUserStates[chatId].email || '';
               const inlineKeyboard = [];
               if (currentBotPricing.price1Month) {
                 inlineKeyboard.push([
-                  { text: `🗓️ Pro ១ ខែ (${currentBotPricing.price1Month})`, callback_data: `plan:1m:${currentHwid}` }
+                  { text: `🗓️ Pro ១ ខែ (${currentBotPricing.price1Month})`, callback_data: `plan:1m:${currentEmail}` }
                 ]);
               }
               if (currentBotPricing.price1Year) {
                 inlineKeyboard.push([
-                  { text: `⭐ Pro ១ ឆ្នាំ (${currentBotPricing.price1Year})`, callback_data: `plan:1y:${currentHwid}` }
+                  { text: `⭐ Pro ១ ឆ្នាំ (${currentBotPricing.price1Year})`, callback_data: `plan:1y:${currentEmail}` }
                 ]);
               }
               if (currentBotPricing.priceLifetime) {
                 inlineKeyboard.push([
-                  { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${currentHwid}` }
+                  { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${currentEmail}` }
                 ]);
               }
               inlineKeyboard.push([
@@ -2389,7 +2384,7 @@ async function pollTelegramBot() {
             } else if (msg.photo || msg.document) {
               const state = telegramUserStates[chatId] || {};
               if (extractedHwid && !state.hwid) {
-                state.hwid = extractedHwid;
+                state.email = extractedEmail;
                 telegramUserStates[chatId] = state;
                 saveTelegramStates(telegramUserStates);
               }
@@ -2400,7 +2395,7 @@ async function pollTelegramBot() {
                 const effectivePlan = state.plan || 'lifetime';
                 let slipReply = `✅ <b>យើងខ្ញុំបានទទួលរូបភាពវិក្កយបត្រ (Payment Slip) របស់អ្នករួចរាល់ហើយ!</b> 🙏\n\n`;
                 slipReply += `👤 <b>គណនីផ្ញើ៖</b> ${senderName} (@${msg.from?.username || 'N/A'})\n`;
-                slipReply += `💻 <b>HWID៖</b> <code>${state.hwid}</code>\n`;
+                slipReply += `💻 <b>Email៖</b> <code>${state.hwid}</code>\n`;
                 slipReply += `🕒 <b>កាលបរិច្ឆេទ៖</b> ${new Date().toLocaleString('km-KH', { timeZone: 'Asia/Phnom_Penh' })}\n\n`;
                 slipReply += `⏳ លោកគ្រូ បូរី (Admin) នឹងពិនិត្យ និងចេញ <b>License Key</b> ជូនលោកគ្រូ/អ្នកគ្រូតាមរយៈ Bot នេះក្នុងពេលឆាប់ៗនេះ។\n\n`;
                 slipReply += `💡 <i>(ប្រសិនបើយឺតយ៉ាវ លោកគ្រូ/អ្នកគ្រូអាចឆាតទៅកាន់ @${adminUser} បន្ថែមបានផងដែរ)</i>`;
@@ -2411,7 +2406,7 @@ async function pollTelegramBot() {
                 if (currentBotPricing.adminChatId) {
                   let adminNotice = `🚨 <b>មានវិក្កយបត្របង់ប្រាក់ថ្មី!</b>\n\n`;
                   adminNotice += `👤 <b>អតិថិជន៖</b> ${senderName} (@${msg.from?.username || 'N/A'})\n`;
-                  adminNotice += `💻 <b>HWID៖</b> <code>${state.hwid}</code>\n`;
+                  adminNotice += `💻 <b>Email៖</b> <code>${state.hwid}</code>\n`;
                   
                   let planTitle = effectivePlan === '1m' ? 'Pro ប្រចាំខែ (1 Month)' : effectivePlan === '1y' ? 'Pro ប្រចាំឆ្នាំ (1 Year)' : 'Pro ពេញមួយជីវិត (Lifetime)';
                   adminNotice += `🌟 <b>គម្រោង៖</b> <b>${planTitle}</b>\n\n`;
@@ -2440,7 +2435,7 @@ async function pollTelegramBot() {
               // User sent regular text (could be HWID or query)
               if (extractedHwid) {
                 telegramUserStates[chatId] = telegramUserStates[chatId] || {};
-                telegramUserStates[chatId].hwid = extractedHwid;
+                telegramUserStates[chatId].email = extractedHwid;
                 telegramUserStates[chatId].name = senderName;
                 telegramUserStates[chatId].username = msg.from?.username || '';
                 saveTelegramStates(telegramUserStates);
@@ -2449,7 +2444,7 @@ async function pollTelegramBot() {
               let textReply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
               textReply += `សួស្តី <b>${senderName}</b>! 🙏\n`;
               if (extractedHwid || telegramUserStates[chatId]?.hwid) {
-                textReply += `💻 <b>Machine ID៖</b> <code>${telegramUserStates[chatId]?.hwid || extractedHwid}</code>\n\n`;
+                textReply += `💻 <b>Email៖</b> <code>${telegramUserStates[chatId]?.hwid || extractedHwid}</code>\n\n`;
               }
               textReply += `ដើម្បីបញ្ជាទិញ License Key ឬទទួលបានព័ត៌មានគម្រោងតម្លៃ សូមចុចជ្រើសរើសគម្រោងខាងក្រោម៖\n`;
 
@@ -2494,7 +2489,7 @@ async function pollTelegramBot() {
             if (action === 'plan') {
               telegramUserStates[chatId] = telegramUserStates[chatId] || { hwid: '' };
               telegramUserStates[chatId].plan = planKey;
-              if (hwid && hwid.toUpperCase() !== 'BUY_LICENSE') telegramUserStates[chatId].hwid = hwid;
+              if (hwid && hwid.toUpperCase() !== 'BUY_LICENSE') telegramUserStates[chatId].email = hwid;
               saveTelegramStates(telegramUserStates);
               
               let planTitle = 'Pro ពេញមួយជីវិត (Lifetime)';
@@ -2511,8 +2506,8 @@ async function pollTelegramBot() {
               let reply = `🎉 <b>ព័ត៌មានបញ្ជាទិញ AC-Kahoot! Pro</b>\n\n`;
               reply += `🌟 <b>គម្រោងដែលបានជ្រើសរើស៖</b> ${planTitle}\n`;
               reply += `💵 <b>ចំនួនទឹកប្រាក់ត្រូវបង់៖</b> <b>${planPrice}</b>\n`;
-              if (telegramUserStates[chatId].hwid) {
-                reply += `💻 <b>Hardware Machine ID (HWID)៖</b>\n<code>${telegramUserStates[chatId].hwid}</code>\n\n`;
+              if (telegramUserStates[chatId].email) {
+                reply += `💻 <b>Hardware Machine ID (HWID)៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
               } else {
                 reply += `\n`;
               }
@@ -2529,7 +2524,7 @@ async function pollTelegramBot() {
                 reply += `\n💬 <i>${currentBotPricing.customNotes}</i>`;
               }
 
-              const targetHwid = telegramUserStates[chatId].hwid || '';
+              const targetHwid = telegramUserStates[chatId].email || '';
               const inlineKeyboard = [
                 [
                   { text: `🔄 ជ្រើសរើសគម្រោងផ្សេងទៀត (Choose Another Plan)`, callback_data: `show_menu:${targetHwid}` }
@@ -2549,9 +2544,9 @@ async function pollTelegramBot() {
               }
             } else if (action === 'show_menu') {
               // Return to step 1 menu
-              const activeHwid = hwid || telegramUserStates[chatId]?.hwid || '';
+              const activeEmail = hwid || telegramUserStates[chatId]?.hwid || '';
               let reply = `🌟 <b>សូមចុចជ្រើសរើសគម្រោងដែលលោកគ្រូ/អ្នកគ្រូចង់ទិញ៖</b>\n\n`;
-              if (activeHwid) reply += `💻 <b>Machine ID៖</b> <code>${activeHwid}</code>\n\n`;
+              if (activeEmail) reply += `💻 <b>Email៖</b> <code>${activeEmail}</code>\n\n`;
               if (currentBotPricing.price1Month) reply += `• <b>Pro ប្រចាំខែ (1 Month)៖</b> ${currentBotPricing.price1Month}\n`;
               if (currentBotPricing.price1Year) reply += `• <b>Pro ប្រចាំឆ្នាំ (1 Year)៖</b> ${currentBotPricing.price1Year}\n`;
               if (currentBotPricing.priceLifetime) reply += `• <b>Pro ពេញមួយជីវិត (Lifetime)៖</b> ${currentBotPricing.priceLifetime}\n\n`;
@@ -2559,17 +2554,17 @@ async function pollTelegramBot() {
               const inlineKeyboard = [];
               if (currentBotPricing.price1Month) {
                 inlineKeyboard.push([
-                  { text: `🗓️ Pro ១ ខែ (${currentBotPricing.price1Month})`, callback_data: `plan:1m:${activeHwid}` }
+                  { text: `🗓️ Pro ១ ខែ (${currentBotPricing.price1Month})`, callback_data: `plan:1m:${activeEmail}` }
                 ]);
               }
               if (currentBotPricing.price1Year) {
                 inlineKeyboard.push([
-                  { text: `⭐ Pro ១ ឆ្នាំ (${currentBotPricing.price1Year})`, callback_data: `plan:1y:${activeHwid}` }
+                  { text: `⭐ Pro ១ ឆ្នាំ (${currentBotPricing.price1Year})`, callback_data: `plan:1y:${activeEmail}` }
                 ]);
               }
               if (currentBotPricing.priceLifetime) {
                 inlineKeyboard.push([
-                  { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${activeHwid}` }
+                  { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${activeEmail}` }
                 ]);
               }
               inlineKeyboard.push([
@@ -2589,18 +2584,18 @@ async function pollTelegramBot() {
               const specifiedPlan = dataParts[2] || '';
               
               const msgText = cq.message.text || cq.message.caption || '';
-              const hwidMatch = msgText.match(/HWID៖\s*([a-zA-Z0-9_-]+)/);
+              const hwidMatch = msgText.match(/Email៖\s*([a-zA-Z0-9_-]+)/);
               const planMatch = msgText.match(/គម្រោង៖\s*Pro\s*(ប្រចាំខែ|ប្រចាំឆ្នាំ|ពេញមួយជីវិត)/);
               
-              let customerHwid = hwidMatch ? hwidMatch[1] : (telegramUserStates[customerChatId]?.hwid || '');
+              let customerEmail = hwidMatch ? hwidMatch[1] : (telegramUserStates[customerChatId]?.hwid || '');
               let plan = specifiedPlan || telegramUserStates[customerChatId]?.plan || 'lifetime';
               if (!specifiedPlan && planMatch) {
                  if (planMatch[1].includes('ប្រចាំខែ')) plan = '1m';
                  else if (planMatch[1].includes('ប្រចាំឆ្នាំ')) plan = '1y';
               }
 
-              if (!customerHwid) {
-                customerHwid = getHardwareFingerprint();
+              if (!customerEmail) {
+                customerEmail = getHardwareFingerprint();
               }
 
               await answerCallbackQuery(cq.id, 'កំពុងបង្កើត Key និងផ្ញើ...');
@@ -2611,14 +2606,14 @@ async function pollTelegramBot() {
               const planEnumMap = { pro_lifetime: 'PRO_LIFETIME', pro_annual: 'PRO_ANNUAL', pro_monthly: 'PRO_MONTHLY' };
               
               const type = typeMap[plan] || 'pro_lifetime';
-              const keyStr = generateCryptographicKey(customerHwid, planEnumMap[type], daysMap[type]);
+              const keyStr = generateCryptographicKey(customerEmail, planEnumMap[type], daysMap[type]);
               
               const typeLabels = { pro_lifetime: 'Pro Lifetime (ប្រើមួយជីវិត)', pro_annual: 'Pro Annual (ប្រចាំឆ្នាំ)', pro_monthly: 'Pro Monthly (ប្រចាំខែ)' };
 
               const newKey = {
                 id: `lic_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
                 key: keyStr,
-                targetHwid: customerHwid,
+                targetHwid: customerEmail,
                 type,
                 typeName: typeLabels[type] || 'Pro License',
                 clientNote: 'Generated via 1-Click Telegram Bot Approval',
@@ -2632,7 +2627,7 @@ async function pollTelegramBot() {
               licenses.unshift(newKey);
               saveLicenses(licenses);
               
-              await sendTelegramMessage(chatId, `✅ <b>បង្កើត និងផ្ញើ Key រួចរាល់!</b>\n<code>${keyStr}</code>\nHWID: <code>${customerHwid}</code>\nKey នេះត្រូវបានរក្សាទុកក្នុងប្រព័ន្ធដោយជោគជ័យ។`, 'HTML');
+              await sendTelegramMessage(chatId, `✅ <b>បង្កើត និងផ្ញើ Key រួចរាល់!</b>\n<code>${keyStr}</code>\nHWID: <code>${customerEmail}</code>\nKey នេះត្រូវបានរក្សាទុកក្នុងប្រព័ន្ធដោយជោគជ័យ។`, 'HTML');
               
               let successMsg = `🎉 <b>ការបញ្ជាទិញទទួលបានជោគជ័យ!</b>\n\n`;
               successMsg += `អរគុណច្រើនដែលបានគាំទ្រប្រព័ន្ធគ្រប់គ្រងវិញ្ញាសា AC-Kahoot! 🙏\n`;
@@ -2657,6 +2652,10 @@ async function pollTelegramBot() {
 setTimeout(pollTelegramBot, 3000);
 
 startServer();
+
+
+
+
 
 
 
