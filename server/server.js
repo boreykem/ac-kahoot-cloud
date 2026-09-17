@@ -1,8 +1,4 @@
-﻿import express from 'express';
-import connectDB from './config/db.js';
-import User from './models/User.js';
-import Quiz from './models/Quiz.js';
-import Settings from './models/Settings.js';
+import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -87,30 +83,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// Seed Super Admin in MongoDB
-const seedSuperAdmin = async () => {
-  try {
-    const adminExists = await User.findOne({ email: 'baureykem@gmail.com' });
-    if (!adminExists) {
-      await User.create({
-        id: 'owner_master',
-        name: 'លោកគ្រូ បូរី (Platform Owner & Master Admin)',
-        email: 'baureykem@gmail.com',
-        password: 'admin123',
-        role: 'superadmin',
-        license: 'founder_unlimited',
-        avatar: '👑',
-        school: 'AC-Kahoot! HQ (Platform Owner)'
-      });
-      console.log('✅ Super Admin seeded in MongoDB!');
-    }
-  } catch (error) {
-    console.error('Failed to seed Super Admin:', error);
-  }
-};
-seedSuperAdmin();
-connectDB();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -192,7 +164,7 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
-// Hardware Machine ID Generator (Device Fingerprint)
+// ឈ្មោះគណនី (Email) Generator (Device Fingerprint)
 function getMachineId() {
   const networkInterfaces = os.networkInterfaces();
   let macStr = '';
@@ -293,7 +265,7 @@ function saveQuizzes(quizzes) {
 }
 
 // Auth Endpoints
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', (req, res) => {
   const { name, email, password, school, avatar, licenseKey } = req.body;
   const cleanName = (name || '').trim();
   const cleanEmail = (email || '').toLowerCase().trim();
@@ -303,22 +275,30 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ success: false, message: 'សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់!' });
   }
 
-  if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(cleanEmail)) {
+  // Basic email format check
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     return res.status(400).json({ success: false, message: 'ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវឡើយ (ឧ. name@domain.com)!' });
   }
 
-  const existing = await User.findOne({ email: cleanEmail });
-  if (existing) {
+  const users = loadUsers();
+  if (users.find(u => u.email.toLowerCase().trim() === cleanEmail)) {
     return res.status(400).json({ success: false, message: 'អ៊ីមែលនេះមានគណនីរួចហើយ!' });
   }
 
-  let userLicense = 'free';
+  // Check active machine license or provided license key
+  const machineLicense = loadActiveLicense();
+  let userLicense = (machineLicense && machineLicense.valid) ? machineLicense.plan : 'free';
+
   if (licenseKey && licenseKey.trim()) {
-     // TODO: Implement cloud license checking here. For now, just a placeholder.
-     if (licenseKey === 'PRO-WEB') userLicense = 'pro_annual';
+    const actResult = saveActiveLicense(licenseKey.trim(), cleanName);
+    if (actResult.success) {
+      userLicense = actResult.license.plan;
+    }
   }
 
-  const newUser = new User({
+  const currentEmail = getHardwareFingerprint();
+
+  const newUser = {
     id: `teacher_${Date.now()}`,
     name: cleanName,
     email: cleanEmail,
@@ -327,38 +307,65 @@ app.post('/api/auth/register', async (req, res) => {
     avatar: avatar || '👨‍🏫',
     role: 'teacher',
     license: userLicense,
-    aiGenerationsCount: 0
-  });
+    boundDeviceId: currentEmail,
+    boundDeviceName: `${os.hostname()} (${os.platform()})`,
+    aiGenerationsCount: 0,
+    createdAt: new Date().toISOString()
+  };
 
-  await newUser.save();
-  const safeUser = newUser.toObject();
-  delete safeUser.password;
+  users.push(newUser);
+  saveUsers(users);
+
+  const { password: _, ...safeUser } = newUser;
   res.json({ success: true, user: safeUser, message: '🎉 បានចុះឈ្មោះបង្កើតគណនីដោយជោគជ័យ!' });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/sync', (req, res) => {
+  const { id, email } = req.body;
+  const users = loadUsers();
+  const user = users.find(u => 
+    (id && u.id === id) || (email && u.email.toLowerCase() === email.toLowerCase().trim())
+  );
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+  const { password: _, ...safeUser } = user;
+  res.json({ success: true, user: safeUser });
+});
+
+app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  const cleanEmail = (email || '').toLowerCase().trim();
-  const cleanPassword = (password || '').trim();
-  
-  const user = await User.findOne({ email: cleanEmail, password: cleanPassword });
+  const users = loadUsers();
+  const user = users.find(u => 
+    u.email.toLowerCase() === (email || '').toLowerCase().trim() && 
+    u.password === (password || '').trim()
+  );
 
   if (!user) {
     return res.status(401).json({ success: false, message: 'អ៊ីមែល ឬលេខសម្ងាត់មិនត្រឹមត្រូវឡើយ!' });
   }
 
-  const safeUser = user.toObject();
-  delete safeUser.password;
+  // Hardware Device ID Verification (Anti-Account Sharing Lock)
+  const currentDeviceId = getMachineId();
+  if (user.role !== 'superadmin' && user.boundDeviceId && user.boundDeviceId !== currentDeviceId) {
+    return res.status(403).json({
+      success: false,
+      message: `🔒 គណនី Pro នេះត្រូវបានចាក់សោភ្ជាប់ជាមួយកុំព្យូទ័រផ្សេង (${user.boundDeviceName || user.boundDeviceId}) រួចហើយ! មិនអាចយកមកប្រើលើកុំព្យូទ័រនេះឡើយ។ សូមទាក់ទងលោកគ្រូម្ចាស់កម្មវិធីដើម្បីផ្ទេរម៉ាស៊ីន (Transfer License)។`
+    });
+  }
+
+  const { password: _, ...safeUser } = user;
   res.json({ success: true, user: safeUser });
 });
 
 // Change Password Endpoint (for logged-in user or master admin)
-app.post('/api/auth/change-password', async (req, res) => {
+app.post('/api/auth/change-password', (req, res) => {
   const { userId, currentPassword, newPassword } = req.body;
   if (!userId || !newPassword) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
   }
-  const user = await User.findOne({ id: userId });
+  const users = loadUsers();
+  const user = users.find(u => u.id === userId);
   if (!user) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
   }
@@ -366,16 +373,16 @@ app.post('/api/auth/change-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'លេខសម្ងាត់ចាស់មិនត្រឹមត្រូវឡើយ!' });
   }
   user.password = newPassword.trim();
-  await user.save();
+  saveUsers(users);
   res.json({ success: true, message: 'បានប្តូរលេខសម្ងាត់ថ្មីដោយជោគជ័យ!' });
 });
 
 // Update Profile & Password Endpoint (for teachers and users)
-app.post('/api/auth/update-profile', async (req, res) => {
+app.post('/api/auth/update-profile', (req, res) => {
   const { userId, name, school, avatar, currentPassword, newPassword } = req.body;
   if (!userId) return res.status(400).json({ success: false, message: 'User ID is required' });
-  
-  const user = await User.findOne({ id: userId });
+  const users = loadUsers();
+  const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
 
   if (newPassword) {
@@ -389,9 +396,8 @@ app.post('/api/auth/update-profile', async (req, res) => {
   if (school) user.school = school;
   if (avatar) user.avatar = avatar;
 
-  await user.save();
-  const safeUser = user.toObject();
-  delete safeUser.password;
+  saveUsers(users);
+  const { password: _, ...safeUser } = user;
   res.json({ success: true, user: safeUser, message: 'បានកែប្រែព័ត៌មាន និងលេខសម្ងាត់ដោយជោគជ័យ!' });
 });
 
@@ -496,16 +502,20 @@ app.post('/api/auth/verify-reset-otp', (req, res) => {
 });
 
 // Admin Reset Password for any teacher
-app.post('/api/admin/users/:id/reset-password', async (req, res) => {
+app.post('/api/admin/users/:id/reset-password', (req, res) => {
   const { id } = req.params;
   const { newPassword } = req.body;
-  if (!newPassword) return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
-  const user = await User.findOne({ id: id });
-  if (!user) return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
-  
+  if (!newPassword) {
+    return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
+  }
+  const users = loadUsers();
+  const user = users.find(u => u.id === id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
+  }
   user.password = newPassword.trim();
-  await user.save();
-  res.json({ success: true, message: `បានកំណត់លេខសម្ងាត់ថ្មីសម្រាប់ $user.name រួចរាល់!` });
+  saveUsers(users);
+  res.json({ success: true, message: `បានកំណត់លេខសម្ងាត់ថ្មីសម្រាប់ ${user.name} រួចរាល់!` });
 });
 
 // Master Admin Endpoints
@@ -531,31 +541,36 @@ app.get('/api/admin/stats', (req, res) => {
   });
 });
 
-app.get('/api/admin/users', async (req, res) => {
-  const users = await User.find({}, '-password').lean();
+app.get('/api/admin/users', (req, res) => {
+  const users = loadUsers().map(({ password, ...u }) => u);
   res.json({ success: true, users });
 });
 
-app.post('/api/admin/users/:id/license', async (req, res) => {
+app.post('/api/admin/users/:id/license', (req, res) => {
   const { id } = req.params;
   const { license } = req.body;
-  const user = await User.findOne({ id: id });
+  const users = loadUsers();
+  const user = users.find(u => u.id === id);
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
   user.license = license || 'free';
-  await user.save();
+  saveUsers(users);
   res.json({ success: true, user });
 });
 
-app.delete('/api/admin/users/:id', async (req, res) => {
+app.delete('/api/admin/users/:id', (req, res) => {
   const { id } = req.params;
-  const target = await User.findOne({ id: id });
+  let users = loadUsers();
+  const target = users.find(u => u.id === id);
   if (target && target.role === 'superadmin') {
     return res.status(403).json({ success: false, message: 'Cannot delete master admin' });
   }
-  await User.deleteOne({ id: id });
+  users = users.filter(u => u.id !== id);
+  saveUsers(users);
   res.json({ success: true });
 });
+
+// Network info endpoint for game lobbies and QR codes
 
 // Network info endpoint for game lobbies and QR codes
 app.get('/api/network-info', (req, res) => {
@@ -725,11 +740,11 @@ function generateKeyString(prefix = 'PRO') {
 
 // Get Current Machine HWID & Active License Status
 app.get('/api/license/machine-info', (req, res) => {
-  const hwid = getHardwareFingerprint();
+  const email = getHardwareFingerprint();
   const activeLicense = loadActiveLicense();
   res.json({
     success: true,
-    hwid,
+    email,
     activeLicense,
     hostname: os.hostname(),
     platform: os.platform()
@@ -737,7 +752,7 @@ app.get('/api/license/machine-info', (req, res) => {
 });
 
 // Activate Machine via Cryptographic License Key (Offline HWID)
-app.post('/api/license/activate-hwid', (req, res) => {
+app.post('/api/license/activate-email', (req, res) => {
   const { licenseKey, clientName, email } = req.body;
   if (!licenseKey) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូល License Key ឱ្យបានត្រឹមត្រូវ!' });
@@ -754,7 +769,7 @@ app.post('/api/license/activate-hwid', (req, res) => {
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
     if (user) {
       user.license = result.license.plan;
-      user.boundDeviceId = result.license.hwid;
+      user.boundDeviceId = result.license.email;
       user.boundDeviceName = `${os.hostname()} (${os.platform()})`;
       saveUsers(users);
     }
@@ -764,7 +779,7 @@ app.post('/api/license/activate-hwid', (req, res) => {
 });
 
 // Deactivate / Remove License from Current Machine (For testing)
-app.post('/api/license/deactivate-hwid', (req, res) => {
+app.post('/api/license/deactivate-email', (req, res) => {
   try {
     const paths = [
       path.join(__dirname, '../license.active.json'),
@@ -793,7 +808,7 @@ app.get('/api/admin/licenses', (req, res) => {
 
 // Admin: Generate new cryptographic or standard license keys
 app.post('/api/admin/licenses/generate', (req, res) => {
-  const { type = 'pro_lifetime', clientNote = '', count = 1, targetHwid = '' } = req.body;
+  const { type = 'pro_lifetime', clientNote = '', count = 1, targetEmail = '' } = req.body;
   const licenses = loadLicenses();
   const createdKeys = [];
 
@@ -818,14 +833,14 @@ app.post('/api/admin/licenses/generate', (req, res) => {
     vip_unlimited: 0
   };
 
-  const effectiveHwid = (targetHwid || '').trim() || getHardwareFingerprint();
+  const effectiveHwid = (targetEmail || '').trim() || getHardwareFingerprint();
 
   for (let i = 0; i < Math.min(count, 50); i++) {
     const keyStr = generateCryptographicKey(effectiveHwid, planMap[type] || 'PRO_LIFETIME', daysMap[type] || 0);
     const newKey = {
       id: `lic_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       key: keyStr,
-      targetHwid: effectiveHwid,
+      targetEmail: effectiveHwid,
       type,
       typeName: typeLabels[type] || 'Pro License',
       clientNote: clientNote || 'Cryptographic License',
@@ -852,78 +867,93 @@ app.delete('/api/admin/licenses/:id', (req, res) => {
 });
 
 // Teacher: Activate License Key
-app.post('/api/license/activate', async (req, res) => {
+app.post('/api/license/activate', (req, res) => {
   const { email, licenseKey } = req.body;
   if (!email || !licenseKey) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូលអ៊ីមែល និង License Key ឱ្យបានត្រឹមត្រូវ!' });
   }
 
   const cleanKey = licenseKey.trim().toUpperCase();
-  const cleanEmail = email.trim().toLowerCase();
 
-  try {
-    const user = await User.findOne({ email: cleanEmail });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីរបស់អ្នកឡើយ!' });
-    }
-
-    // First verify against cryptographic signature
-    const cryptoVerify = verifyCryptographicKey(cleanKey, getHardwareFingerprint());
-    if (cryptoVerify.valid) {
-      user.license = cryptoVerify.planType;
-      await user.save();
-      const userObj = user.toObject();
-      delete userObj.password;
+  // First verify against cryptographic signature
+  const cryptoVerify = verifyCryptographicKey(cleanKey, email.trim());
+  if (cryptoVerify.valid) {
+    const saveResult = saveActiveLicense(cleanKey, email);
+    const users = loadUsers();
+    const userIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (userIdx !== -1) {
+      users[userIdx].license = cryptoVerify.planType;
+      users[userIdx].boundDeviceId = cryptoVerify.email;
+      users[userIdx].boundDeviceName = `${os.hostname()} (${os.platform()})`;
+      saveUsers(users);
+      const { password: _, ...safeUser } = users[userIdx];
       return res.json({
         success: true,
-        message: '🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ដោយជោគជ័យ!',
-        user: userObj
+        message: `🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ទៅកាន់ ${cryptoVerify.planTitle} និងចាក់សោសុវត្ថិភាពលើកុំព្យូទ័រនេះដោយជោគជ័យ!`,
+        user: safeUser
       });
     }
-
-    // Fallback to static licenseKeys.json
-    const licenses = loadLicenses();
-    const foundKey = licenses.find(l => l.key.toUpperCase() === cleanKey);
-
-    if (!foundKey) {
-      return res.status(400).json({ success: false, message: 'លេខកូដ License Key នេះមិនត្រឹមត្រូវឡើយ!' });
-    }
-
-    if (foundKey.used) {
-      return res.status(400).json({ success: false, message: 'លេខកូដ License នេះត្រូវបានបើកប្រើប្រាស់រួចហើយ!' });
-    }
-
-    user.license = foundKey.type;
-    await user.save();
-
-    foundKey.used = true;
-    foundKey.usedBy = cleanEmail;
-    foundKey.usedAt = new Date().toISOString();
-    saveLicenses(licenses);
-
-    const userObj = user.toObject();
-    delete userObj.password;
-    res.json({
-      success: true,
-      message: '🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ដោយជោគជ័យ!',
-      user: userObj
-    });
-  } catch (error) {
-    console.error('License Activation Error:', error);
-    res.status(500).json({ success: false, message: 'មានបញ្ហាក្នុងការភ្ជាប់ទៅ Database!' });
   }
+
+  // Fallback to legacy static licenseKeys.json
+  const licenses = loadLicenses();
+  const foundKey = licenses.find(l => l.key.toUpperCase() === cleanKey);
+
+  if (!foundKey) {
+    return res.status(400).json({ 
+      success: false, 
+      message: cryptoVerify.message || 'លេខកូដ License Key នេះមិនត្រឹមត្រូវឡើយ!' 
+    });
+  }
+
+  if (foundKey.used) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `លេខកូដ License នេះត្រូវបានបើកប្រើប្រាស់រួចហើយដោយ៖ ${foundKey.usedBy}` 
+    });
+  }
+
+  // Update user license tier & Bind ឈ្មោះគណនី (Email)
+  const users = loadUsers();
+  const userIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+  if (userIdx === -1) {
+    return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីរបស់អ្នកឡើយ!' });
+  }
+
+  const currentDeviceId = getHardwareFingerprint();
+  const currentDeviceName = `${os.hostname()} (${os.platform()})`;
+
+  users[userIdx].license = foundKey.type;
+  users[userIdx].boundDeviceId = currentDeviceId;
+  users[userIdx].boundDeviceName = currentDeviceName;
+  saveUsers(users);
+
+  // Mark license as used & bound
+  foundKey.used = true;
+  foundKey.usedBy = email;
+  foundKey.boundDeviceId = currentDeviceId;
+  foundKey.boundDeviceName = currentDeviceName;
+  foundKey.usedAt = new Date().toISOString();
+  saveLicenses(licenses);
+
+  const { password: _, ...safeUser } = users[userIdx];
+  res.json({
+    success: true,
+    message: `🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ទៅកាន់ ${foundKey.typeName} និងចាក់សោសុវត្ថិភាពលើកុំព្យូទ័រនេះដោយជោគជ័យ!`,
+    user: safeUser
+  });
 });
 
 // Admin: Reset / Unlock teacher's Device Binding (Transfer PC)
-app.post('/api/admin/users/:id/reset-device', async (req, res) => {
+app.post('/api/admin/users/:id/reset-device', (req, res) => {
   const { id } = req.params;
-  const user = await User.findOne({ id: id });
+  const users = loadUsers();
+  const user = users.find(u => u.id === id);
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-  
   user.boundDeviceId = null;
   user.boundDeviceName = null;
-  await user.save();
-  res.json({ success: true, message: `បានដោះសោ Device ID សម្រាប់ $user.name ដោយជោគជ័យ!` });
+  saveUsers(users);
+  res.json({ success: true, message: `បានដោះសោ Device ID សម្រាប់ ${user.name} ដោយជោគជ័យ!` });
 });
 
 // REST API Endpoints
@@ -2221,13 +2251,13 @@ app.post('/api/admin/bot/send-test', async (req, res) => {
 
 // Endpoint to send inquiry or notify admin
 app.post('/api/telegram/notify-inquiry', async (req, res) => {
-  const { hwid } = req.body;
-  if (!hwid) return res.status(400).json({ success: false, message: 'HWID is required' });
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: 'HWID is required' });
   
   const username = currentBotPricing.botUsername || 'ac_mart_programer_developer_bot';
   res.json({
     success: true,
-    botUrl: `https://t.me/${username}?start=EMAIL_${(hwid || '').replace(/[^a-zA-Z0-9_-]/g, '')}`
+    botUrl: `https://t.me/${username}?start=EMAIL_${(email || '').replace(/[^a-zA-Z0-9_-]/g, '')}`
   });
 });
 
@@ -2309,8 +2339,8 @@ async function pollTelegramBot() {
             const senderName = msg.from?.first_name || 'លោកគ្រូ/អ្នកគ្រូ';
 
             // Smart HWID detection from text
-            const hwidMatch = text.match(/(?:EMAIL_|ACK-HWID-|ACK-)([A-Z0-9_-]+)/i);
-            const extractedHwid = hwidMatch ? hwidMatch[0].replace(/^HWID_/i, '').trim() : '';
+            const emailMatch = text.match(/(?:EMAIL_|ACK-HWID-|ACK-)([A-Z0-9_-]+)/i);
+            const extractedEmail = emailMatch ? emailMatch[0].replace(/^EMAIL_/i, '').trim() : '';
 
             // Auto-bind Admin Chat ID if sender is admin or sends /admin
             const fromUsername = (msg.from?.username || '').toLowerCase();
@@ -2326,12 +2356,19 @@ async function pollTelegramBot() {
             if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'price') {
               const parts = text.split(' ');
               const param = parts[1] || '';
-              let hwid = param.replace(/^EMAIL_/i, '').trim();
-              if (hwid.toUpperCase() === 'BUY_LICENSE') hwid = '';
-              if (!hwid && extractedHwid) hwid = extractedHwid;
+              let email = param.replace(/^EMAIL_/i, '').trim();
+              if (param.startsWith('E_')) {
+                try {
+                  let b64 = param.replace(/^E_/i, '').replace(/-/g, '+').replace(/_/g, '/');
+                  while (b64.length % 4) b64 += '=';
+                  email = Buffer.from(b64, 'base64').toString('utf8');
+                } catch(e) {}
+              }
+              if (email.toUpperCase() === 'BUY_LICENSE') email = '';
+              if (!email && extractedEmail) email = extractedEmail;
 
               telegramUserStates[chatId] = {
-                hwid: hwid || (telegramUserStates[chatId]?.hwid || ''),
+                email: email || (telegramUserStates[chatId]?.email || ''),
                 plan: telegramUserStates[chatId]?.plan || '',
                 name: senderName,
                 username: msg.from?.username || '',
@@ -2342,10 +2379,10 @@ async function pollTelegramBot() {
               let reply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
               reply += `សួស្តី <b>${senderName}</b>! 🙏\n\n`;
               if (telegramUserStates[chatId].email) {
-                reply += `💻 <b>អ៊ីមែល (Email) របស់អ្នក៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
-                reply += `✅ យើងខ្ញុំបានកត់ត្រាអុីមែល របស់អ្នករួចរាល់ហើយ!\n\n`;
+                reply += `💻 <b>ឈ្មោះគណនី (Email) របស់អ្នក៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
+                reply += `✅ យើងខ្ញុំបានកត់ត្រា ឈ្មោះគណនី (Email) របស់អ្នករួចរាល់ហើយ!\n\n`;
               } else {
-                reply += `ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <b>Hardware Machine ID</b> របស់អ្នកមកកាន់ទីនេះ។\n\n`;
+                reply += `ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <b>ឈ្មោះគណនី (Email)</b> របស់អ្នកមកកាន់ទីនេះ។\n\n`;
               }
               reply += `🌟 <b>សូមចុចជ្រើសរើសគម្រោងដែលលោកគ្រូ/អ្នកគ្រូចង់ទិញខាងក្រោម៖</b>\n`;
               if (currentBotPricing.price1Month) reply += `• <b>Pro ប្រចាំខែ (1 Month)៖</b> ${currentBotPricing.price1Month}\n`;
@@ -2383,19 +2420,19 @@ async function pollTelegramBot() {
               await sendTelegramMessage(chatId, `✅ <b>ជោគជ័យ!</b> Bot បានកត់ត្រា និងភ្ជាប់ Admin Chat ID (<code>${chatId}</code>) រួចរាល់។ លោកគ្រូនឹងទទួលបានវិក្កយបត្របង់ប្រាក់នៅទីនេះដោយស្វ័យប្រវត្តិ។`, 'HTML');
             } else if (msg.photo || msg.document) {
               const state = telegramUserStates[chatId] || {};
-              if (extractedHwid && !state.hwid) {
+              if (extractedEmail && !state.email) {
                 state.email = extractedEmail;
                 telegramUserStates[chatId] = state;
                 saveTelegramStates(telegramUserStates);
               }
 
-              if (!state.hwid) {
+              if (!state.email) {
                  await sendTelegramMessage(chatId, `⚠️ <b>សូមអភ័យទោស!</b> យើងខ្ញុំមិនទាន់ស្គាល់ Hardware ID របស់អ្នកទេ។\nសូមចូលទៅកាន់កម្មវិធី រួចចុចប៉ូតុង <b>"ទិញឥឡូវនេះ (Buy Now)"</b> ម្តងទៀត ឬវាយផ្ញើលេខ HWID (ឧទាហរណ៍៖ <code>ACK-HWID-XXXX-YYYY-ZZZZ</code>) មកកាន់ទីនេះសិន។`, 'HTML');
               } else {
                 const effectivePlan = state.plan || 'lifetime';
                 let slipReply = `✅ <b>យើងខ្ញុំបានទទួលរូបភាពវិក្កយបត្រ (Payment Slip) របស់អ្នករួចរាល់ហើយ!</b> 🙏\n\n`;
                 slipReply += `👤 <b>គណនីផ្ញើ៖</b> ${senderName} (@${msg.from?.username || 'N/A'})\n`;
-                slipReply += `💻 <b>Email៖</b> <code>${state.hwid}</code>\n`;
+                slipReply += `💻 <b>HWID៖</b> <code>${state.email}</code>\n`;
                 slipReply += `🕒 <b>កាលបរិច្ឆេទ៖</b> ${new Date().toLocaleString('km-KH', { timeZone: 'Asia/Phnom_Penh' })}\n\n`;
                 slipReply += `⏳ លោកគ្រូ បូរី (Admin) នឹងពិនិត្យ និងចេញ <b>License Key</b> ជូនលោកគ្រូ/អ្នកគ្រូតាមរយៈ Bot នេះក្នុងពេលឆាប់ៗនេះ។\n\n`;
                 slipReply += `💡 <i>(ប្រសិនបើយឺតយ៉ាវ លោកគ្រូ/អ្នកគ្រូអាចឆាតទៅកាន់ @${adminUser} បន្ថែមបានផងដែរ)</i>`;
@@ -2406,7 +2443,7 @@ async function pollTelegramBot() {
                 if (currentBotPricing.adminChatId) {
                   let adminNotice = `🚨 <b>មានវិក្កយបត្របង់ប្រាក់ថ្មី!</b>\n\n`;
                   adminNotice += `👤 <b>អតិថិជន៖</b> ${senderName} (@${msg.from?.username || 'N/A'})\n`;
-                  adminNotice += `💻 <b>Email៖</b> <code>${state.hwid}</code>\n`;
+                  adminNotice += `💻 <b>HWID៖</b> <code>${state.email}</code>\n`;
                   
                   let planTitle = effectivePlan === '1m' ? 'Pro ប្រចាំខែ (1 Month)' : effectivePlan === '1y' ? 'Pro ប្រចាំឆ្នាំ (1 Year)' : 'Pro ពេញមួយជីវិត (Lifetime)';
                   adminNotice += `🌟 <b>គម្រោង៖</b> <b>${planTitle}</b>\n\n`;
@@ -2433,9 +2470,9 @@ async function pollTelegramBot() {
               }
             } else if (text) {
               // User sent regular text (could be HWID or query)
-              if (extractedHwid) {
+              if (extractedEmail) {
                 telegramUserStates[chatId] = telegramUserStates[chatId] || {};
-                telegramUserStates[chatId].email = extractedHwid;
+                telegramUserStates[chatId].email = extractedEmail;
                 telegramUserStates[chatId].name = senderName;
                 telegramUserStates[chatId].username = msg.from?.username || '';
                 saveTelegramStates(telegramUserStates);
@@ -2443,26 +2480,26 @@ async function pollTelegramBot() {
 
               let textReply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
               textReply += `សួស្តី <b>${senderName}</b>! 🙏\n`;
-              if (extractedHwid || telegramUserStates[chatId]?.hwid) {
-                textReply += `💻 <b>Email៖</b> <code>${telegramUserStates[chatId]?.hwid || extractedHwid}</code>\n\n`;
+              if (extractedEmail || telegramUserStates[chatId]?.email) {
+                textReply += `💻 <b>ឈ្មោះគណនី (Email)៖</b> <code>${telegramUserStates[chatId]?.email || extractedEmail}</code>\n\n`;
               }
               textReply += `ដើម្បីបញ្ជាទិញ License Key ឬទទួលបានព័ត៌មានគម្រោងតម្លៃ សូមចុចជ្រើសរើសគម្រោងខាងក្រោម៖\n`;
 
-              const curHwid = telegramUserStates[chatId]?.hwid || extractedHwid || '';
+              const curEmail = telegramUserStates[chatId]?.email || extractedEmail || '';
               const inlineKeyboard = [];
               if (currentBotPricing.price1Month) {
                 inlineKeyboard.push([
-                  { text: `🗓️ Pro ១ ខែ (${currentBotPricing.price1Month})`, callback_data: `plan:1m:${curHwid}` }
+                  { text: `🗓️ Pro ១ ខែ (${currentBotPricing.price1Month})`, callback_data: `plan:1m:${curEmail}` }
                 ]);
               }
               if (currentBotPricing.price1Year) {
                 inlineKeyboard.push([
-                  { text: `⭐ Pro ១ ឆ្នាំ (${currentBotPricing.price1Year})`, callback_data: `plan:1y:${curHwid}` }
+                  { text: `⭐ Pro ១ ឆ្នាំ (${currentBotPricing.price1Year})`, callback_data: `plan:1y:${curEmail}` }
                 ]);
               }
               if (currentBotPricing.priceLifetime) {
                 inlineKeyboard.push([
-                  { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${curHwid}` }
+                  { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${curEmail}` }
                 ]);
               }
               inlineKeyboard.push([
@@ -2482,14 +2519,14 @@ async function pollTelegramBot() {
             const dataParts = cq.data.split(':');
             const action = dataParts[0]; // 'plan', 'show_menu', 'approve', 'reject'
             const planKey = dataParts[1]; // '1m', '1y', 'lifetime'
-            const hwid = dataParts[2] || '';
+            const email = dataParts[2] || '';
 
             await answerCallbackQuery(cq.id, 'កំពុងបង្ហាញព័ត៌មានបង់ប្រាក់...');
 
             if (action === 'plan') {
-              telegramUserStates[chatId] = telegramUserStates[chatId] || { hwid: '' };
+              telegramUserStates[chatId] = telegramUserStates[chatId] || { email: '' };
               telegramUserStates[chatId].plan = planKey;
-              if (hwid && hwid.toUpperCase() !== 'BUY_LICENSE') telegramUserStates[chatId].email = hwid;
+              if (email && email.toUpperCase() !== 'BUY_LICENSE') telegramUserStates[chatId].email = email;
               saveTelegramStates(telegramUserStates);
               
               let planTitle = 'Pro ពេញមួយជីវិត (Lifetime)';
@@ -2507,7 +2544,7 @@ async function pollTelegramBot() {
               reply += `🌟 <b>គម្រោងដែលបានជ្រើសរើស៖</b> ${planTitle}\n`;
               reply += `💵 <b>ចំនួនទឹកប្រាក់ត្រូវបង់៖</b> <b>${planPrice}</b>\n`;
               if (telegramUserStates[chatId].email) {
-                reply += `💻 <b>Hardware Machine ID (HWID)៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
+                reply += `💻 <b>ឈ្មោះគណនី (Email) (HWID)៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
               } else {
                 reply += `\n`;
               }
@@ -2524,10 +2561,10 @@ async function pollTelegramBot() {
                 reply += `\n💬 <i>${currentBotPricing.customNotes}</i>`;
               }
 
-              const targetHwid = telegramUserStates[chatId].email || '';
+              const targetEmail = telegramUserStates[chatId].email || '';
               const inlineKeyboard = [
                 [
-                  { text: `🔄 ជ្រើសរើសគម្រោងផ្សេងទៀត (Choose Another Plan)`, callback_data: `show_menu:${targetHwid}` }
+                  { text: `🔄 ជ្រើសរើសគម្រោងផ្សេងទៀត (Choose Another Plan)`, callback_data: `show_menu:${targetEmail}` }
                 ],
                 [
                   { text: `💬 ឆាតទាក់ទងលោកគ្រូ បូរី ផ្ទាល់`, url: `https://t.me/${adminUser}` }
@@ -2544,9 +2581,9 @@ async function pollTelegramBot() {
               }
             } else if (action === 'show_menu') {
               // Return to step 1 menu
-              const activeEmail = hwid || telegramUserStates[chatId]?.hwid || '';
+              const activeEmail = email || telegramUserStates[chatId]?.email || '';
               let reply = `🌟 <b>សូមចុចជ្រើសរើសគម្រោងដែលលោកគ្រូ/អ្នកគ្រូចង់ទិញ៖</b>\n\n`;
-              if (activeEmail) reply += `💻 <b>Email៖</b> <code>${activeEmail}</code>\n\n`;
+              if (activeEmail) reply += `💻 <b>ឈ្មោះគណនី (Email)៖</b> <code>${activeEmail}</code>\n\n`;
               if (currentBotPricing.price1Month) reply += `• <b>Pro ប្រចាំខែ (1 Month)៖</b> ${currentBotPricing.price1Month}\n`;
               if (currentBotPricing.price1Year) reply += `• <b>Pro ប្រចាំឆ្នាំ (1 Year)៖</b> ${currentBotPricing.price1Year}\n`;
               if (currentBotPricing.priceLifetime) reply += `• <b>Pro ពេញមួយជីវិត (Lifetime)៖</b> ${currentBotPricing.priceLifetime}\n\n`;
@@ -2584,10 +2621,10 @@ async function pollTelegramBot() {
               const specifiedPlan = dataParts[2] || '';
               
               const msgText = cq.message.text || cq.message.caption || '';
-              const hwidMatch = msgText.match(/Email៖\s*([a-zA-Z0-9_-]+)/);
+              const emailMatch = msgText.match(/HWID៖\s*([a-zA-Z0-9_-]+)/);
               const planMatch = msgText.match(/គម្រោង៖\s*Pro\s*(ប្រចាំខែ|ប្រចាំឆ្នាំ|ពេញមួយជីវិត)/);
               
-              let customerEmail = hwidMatch ? hwidMatch[1] : (telegramUserStates[customerChatId]?.hwid || '');
+              let customerEmail = emailMatch ? emailMatch[1] : (telegramUserStates[customerChatId]?.email || '');
               let plan = specifiedPlan || telegramUserStates[customerChatId]?.plan || 'lifetime';
               if (!specifiedPlan && planMatch) {
                  if (planMatch[1].includes('ប្រចាំខែ')) plan = '1m';
@@ -2613,7 +2650,7 @@ async function pollTelegramBot() {
               const newKey = {
                 id: `lic_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
                 key: keyStr,
-                targetHwid: customerEmail,
+                targetEmail: customerEmail,
                 type,
                 typeName: typeLabels[type] || 'Pro License',
                 clientNote: 'Generated via 1-Click Telegram Bot Approval',
@@ -2652,11 +2689,5 @@ async function pollTelegramBot() {
 setTimeout(pollTelegramBot, 3000);
 
 startServer();
-
-
-
-
-
-
 
 

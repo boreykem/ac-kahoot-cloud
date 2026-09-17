@@ -613,7 +613,6 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                           <th className="p-3.5">គ្រូបង្រៀន (Teacher)</th>
                           <th className="p-3.5">សាលា/ស្ថាប័ន (School)</th>
                           <th className="p-3.5">កម្រិត License</th>
-                          <th className="p-3.5 text-center">សកម្មភាព (Actions)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/10">
@@ -651,44 +650,17 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                                   </span>
                                 ) : (
                                   <select
-                                    value={u.license || 'free'}
+                                    value={(u.license || 'FREE').toUpperCase()}
                                     onChange={(e) => handleUpdateLicense(u.id, e.target.value)}
                                     className="bg-black/60 border border-purple-400/40 text-yellow-300 rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none"
                                   >
-                                    <option value="free">⚪ ធម្មតា (Free Tier)</option>
+                                    <option value="FREE">⚪ ធម្មតា (Free Tier)</option>
                                     <option value="PRO_LIFETIME">👑 Pro Lifetime (ប្រើមួយជីវិត)</option>
                                     <option value="VIP_SCHOOL">🏫 VIP School Lifetime (សាលារៀន)</option>
-                                    <option value="pro_annual">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
-                                    <option value="pro_monthly">⏳ Pro Monthly (ប្រចាំខែ)</option>
+                                    <option value="PRO_ANNUAL">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
+                                    <option value="PRO_MONTHLY">⏳ Pro Monthly (ប្រចាំខែ)</option>
                                   </select>
                                 )}
-                              </td>
-
-                              <td className="p-3.5">
-                                <div className="flex items-center justify-center gap-2">
-                                  {!isOwner && (
-                                    <>
-                                      <button
-                                        type="button"
-                                        onClick={() => { setResetTargetUser(u); setNewTargetPassword(''); }}
-                                        title="កំណត់លេខសម្ងាត់ថ្មីឱ្យគ្រូនេះ (Reset Password)"
-                                        className="px-2.5 py-1 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 text-[11px] font-bold border border-yellow-400/30 flex items-center gap-1 transition-all"
-                                      >
-                                        <Key className="w-3 h-3" />
-                                        <span>Reset Pass</span>
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteUser(u.id, u.name)}
-                                        title="លុបគណនីគ្រូនេះ"
-                                        className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white transition-all"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
                               </td>
                             </tr>
                           );
@@ -1364,7 +1336,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                         </div>
                         <div className="space-y-1 font-bold text-xs">
                           <div className="py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-center shadow-md flex items-center justify-center gap-1.5">
-                            <span>✅ ខ្ញុំបានបង់ប្រាក់រួចរាល់ ➜ ផ្ញើវិក្កយបត្រ & HWID ទៅ @{(botPricing.adminTelegram || 'KEMBOREY').replace(/^@/, '')}</span>
+                            <span>✅ ខ្ញុំបានបង់ប្រាក់រួចរាល់ ➜ ផ្ញើវិក្កយបត្រ & Email ទៅ @{(botPricing.adminTelegram || 'KEMBOREY').replace(/^@/, '')}</span>
                           </div>
                           <div className="py-1.5 px-3 rounded-xl bg-purple-600/30 border border-purple-400/40 text-purple-200 text-center text-[11px]">
                             <span>🔄 ជ្រើសរើសគម្រោងផ្សេងទៀត (Choose Another Plan)</span>
