@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import connectDB from './config/db.js';
 import User from './models/User.js';
 import Quiz from './models/Quiz.js';
@@ -87,6 +87,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Seed Super Admin in MongoDB
+const seedSuperAdmin = async () => {
+  try {
+    const adminExists = await User.findOne({ email: 'baureykem@gmail.com' });
+    if (!adminExists) {
+      await User.create({
+        id: 'owner_master',
+        name: 'លោកគ្រូ បូរី (Platform Owner & Master Admin)',
+        email: 'baureykem@gmail.com',
+        password: 'admin123',
+        role: 'superadmin',
+        license: 'founder_unlimited',
+        avatar: '👑',
+        school: 'AC-Kahoot! HQ (Platform Owner)'
+      });
+      console.log('✅ Super Admin seeded in MongoDB!');
+    }
+  } catch (error) {
+    console.error('Failed to seed Super Admin:', error);
+  }
+};
+seedSuperAdmin();
 connectDB();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -834,81 +857,66 @@ app.delete('/api/admin/licenses/:id', (req, res) => {
 });
 
 // Teacher: Activate License Key
-app.post('/api/license/activate', (req, res) => {
+app.post('/api/license/activate', async (req, res) => {
   const { email, licenseKey } = req.body;
   if (!email || !licenseKey) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូលអ៊ីមែល និង License Key ឱ្យបានត្រឹមត្រូវ!' });
   }
 
   const cleanKey = licenseKey.trim().toUpperCase();
+  const cleanEmail = email.trim().toLowerCase();
 
-  // First verify against cryptographic signature
-  const cryptoVerify = verifyCryptographicKey(cleanKey, getHardwareFingerprint());
-  if (cryptoVerify.valid) {
-    const saveResult = saveActiveLicense(cleanKey, email);
-    const users = loadUsers();
-    const userIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-    if (userIdx !== -1) {
-      users[userIdx].license = cryptoVerify.planType;
-      users[userIdx].boundDeviceId = cryptoVerify.hwid;
-      users[userIdx].boundDeviceName = `${os.hostname()} (${os.platform()})`;
-      saveUsers(users);
-      const { password: _, ...safeUser } = users[userIdx];
+  try {
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីរបស់អ្នកឡើយ!' });
+    }
+
+    // First verify against cryptographic signature
+    const cryptoVerify = verifyCryptographicKey(cleanKey, getHardwareFingerprint());
+    if (cryptoVerify.valid) {
+      user.license = cryptoVerify.planType;
+      await user.save();
+      const userObj = user.toObject();
+      delete userObj.password;
       return res.json({
         success: true,
-        message: `🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ទៅកាន់ ${cryptoVerify.planTitle} និងចាក់សោសុវត្ថិភាពលើកុំព្យូទ័រនេះដោយជោគជ័យ!`,
-        user: safeUser
+        message: '🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ដោយជោគជ័យ!',
+        user: userObj
       });
     }
-  }
 
-  // Fallback to legacy static licenseKeys.json
-  const licenses = loadLicenses();
-  const foundKey = licenses.find(l => l.key.toUpperCase() === cleanKey);
+    // Fallback to static licenseKeys.json
+    const licenses = loadLicenses();
+    const foundKey = licenses.find(l => l.key.toUpperCase() === cleanKey);
 
-  if (!foundKey) {
-    return res.status(400).json({ 
-      success: false, 
-      message: cryptoVerify.message || 'លេខកូដ License Key នេះមិនត្រឹមត្រូវឡើយ!' 
+    if (!foundKey) {
+      return res.status(400).json({ success: false, message: 'លេខកូដ License Key នេះមិនត្រឹមត្រូវឡើយ!' });
+    }
+
+    if (foundKey.used) {
+      return res.status(400).json({ success: false, message: 'លេខកូដ License នេះត្រូវបានបើកប្រើប្រាស់រួចហើយ!' });
+    }
+
+    user.license = foundKey.type;
+    await user.save();
+
+    foundKey.used = true;
+    foundKey.usedBy = cleanEmail;
+    foundKey.usedAt = new Date().toISOString();
+    saveLicenses(licenses);
+
+    const userObj = user.toObject();
+    delete userObj.password;
+    res.json({
+      success: true,
+      message: '🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ដោយជោគជ័យ!',
+      user: userObj
     });
+  } catch (error) {
+    console.error('License Activation Error:', error);
+    res.status(500).json({ success: false, message: 'មានបញ្ហាក្នុងការភ្ជាប់ទៅ Database!' });
   }
-
-  if (foundKey.used) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `លេខកូដ License នេះត្រូវបានបើកប្រើប្រាស់រួចហើយដោយ៖ ${foundKey.usedBy}` 
-    });
-  }
-
-  // Update user license tier & Bind Machine ID
-  const users = loadUsers();
-  const userIdx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-  if (userIdx === -1) {
-    return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីរបស់អ្នកឡើយ!' });
-  }
-
-  const currentDeviceId = getHardwareFingerprint();
-  const currentDeviceName = `${os.hostname()} (${os.platform()})`;
-
-  users[userIdx].license = foundKey.type;
-  users[userIdx].boundDeviceId = currentDeviceId;
-  users[userIdx].boundDeviceName = currentDeviceName;
-  saveUsers(users);
-
-  // Mark license as used & bound
-  foundKey.used = true;
-  foundKey.usedBy = email;
-  foundKey.boundDeviceId = currentDeviceId;
-  foundKey.boundDeviceName = currentDeviceName;
-  foundKey.usedAt = new Date().toISOString();
-  saveLicenses(licenses);
-
-  const { password: _, ...safeUser } = users[userIdx];
-  res.json({
-    success: true,
-    message: `🎉 អបអរសាទរ! គណនីរបស់អ្នកត្រូវបាន Upgrade ទៅកាន់ ${foundKey.typeName} និងចាក់សោសុវត្ថិភាពលើកុំព្យូទ័រនេះដោយជោគជ័យ!`,
-    user: safeUser
-  });
 });
 
 // Admin: Reset / Unlock teacher's Device Binding (Transfer PC)
@@ -2649,5 +2657,7 @@ async function pollTelegramBot() {
 setTimeout(pollTelegramBot, 3000);
 
 startServer();
+
+
 
 
