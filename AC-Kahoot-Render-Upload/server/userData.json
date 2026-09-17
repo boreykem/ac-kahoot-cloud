@@ -1,0 +1,49 @@
+[
+  {
+    "id": "owner_master",
+    "name": "លោកគ្រូ បូរី (Platform Owner & Master Admin)",
+    "email": "baureykem@gmail.com",
+    "password": "092673641",
+    "role": "superadmin",
+    "license": "founder_unlimited",
+    "avatar": "👑",
+    "school": "AC-Kahoot! HQ (Platform Owner)",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "teacher_demo",
+    "name": "លោកគ្រូ សុខា (Teacher Sokha)",
+    "email": "teacher@ac-kahoot.edu",
+    "password": "password123",
+    "role": "teacher",
+    "license": "pro_annual",
+    "avatar": "👨‍🏫",
+    "school": "សាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ (RUPP)",
+    "createdAt": "2026-02-15T08:30:00.000Z"
+  },
+  {
+    "id": "teacher_1788013742895",
+    "name": "soklim",
+    "email": "kemborey.ac@gmail.com",
+    "password": "0926736",
+    "school": "មន្ទីរផែនការខេត្តកំពង់ចាម",
+    "avatar": "💼",
+    "role": "teacher",
+    "license": "pro_lifetime",
+    "createdAt": "2026-08-29T14:29:02.895Z"
+  },
+  {
+    "id": "teacher_1788490343888",
+    "name": "vichra@gmail.com",
+    "email": "vichra@gmail.com",
+    "password": "0926736",
+    "school": "kc",
+    "avatar": "👨‍🏫",
+    "role": "teacher",
+    "license": "free",
+    "boundDeviceId": "ACK-HWID-0AF8-C808-3DC5",
+    "boundDeviceName": "DESKTOP-9R99F4E (win32)",
+    "aiGenerationsCount": 0,
+    "createdAt": "2026-09-04T02:52:23.889Z"
+  }
+]

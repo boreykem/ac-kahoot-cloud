@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ac-kahoot-cloud
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node server/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+
