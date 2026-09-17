@@ -2344,6 +2344,13 @@ async function pollTelegramBot() {
               const parts = text.split(' ');
               const param = parts[1] || '';
               let email = param.replace(/^EMAIL_/i, '').trim();
+              if (param.startsWith('E_')) {
+                try {
+                  let b64 = param.replace(/^E_/i, '').replace(/-/g, '+').replace(/_/g, '/');
+                  while (b64.length % 4) b64 += '=';
+                  email = Buffer.from(b64, 'base64').toString('utf8');
+                } catch(e) {}
+              }
               if (email.toUpperCase() === 'BUY_LICENSE') email = '';
               if (!email && extractedEmail) email = extractedEmail;
 

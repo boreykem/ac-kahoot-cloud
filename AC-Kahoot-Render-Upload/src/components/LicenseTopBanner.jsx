@@ -93,7 +93,8 @@ export default function LicenseTopBanner({
     }
     
     if (link.includes('t.me') && cleanEmail && !link.includes('start=')) {
-      link += (link.includes('?') ? '&' : '?') + `start=EMAIL_${cleanEmail}`;
+      const b64Email = btoa(cleanEmail).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      link += (link.includes('?') ? '&' : '?') + `start=E_${b64Email}`;
     }
     window.open(link, '_blank');
   };
