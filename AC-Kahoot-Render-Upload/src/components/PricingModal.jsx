@@ -94,10 +94,10 @@ export default function PricingModal({ currentUser, isOpen, onClose }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[95vh]">
         
         {/* Header */}
-        <div className="relative bg-slate-800 border-b border-slate-700 p-6 overflow-hidden">
+        <div className="relative bg-slate-800 border-b border-slate-700 p-5 sm:p-6 overflow-hidden shrink-0">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-indigo-500/10" />
           
           <button
@@ -122,7 +122,7 @@ export default function PricingModal({ currentUser, isOpen, onClose }) {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-5 sm:p-6 overflow-y-auto">
           {!showQR ? (
             <div className="space-y-4">
               <p className="text-sm text-slate-300 text-center mb-4">សូមជ្រើសរើសកញ្ចប់ដែលលោកគ្រូ/អ្នកគ្រូចង់ទិញ៖</p>
@@ -184,7 +184,7 @@ export default function PricingModal({ currentUser, isOpen, onClose }) {
                 </p>
               </div>
 
-              <div className="bg-white p-4 rounded-3xl mx-auto w-64 h-64 flex items-center justify-center relative overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+              <div className="bg-white p-3 sm:p-4 rounded-3xl mx-auto w-48 h-48 sm:w-64 sm:h-64 flex items-center justify-center relative overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.1)]">
                 {botConfig?.khqrImage ? (
                   <img src={botConfig.khqrImage} alt="KHQR" className="w-full h-full object-contain" />
                 ) : (
