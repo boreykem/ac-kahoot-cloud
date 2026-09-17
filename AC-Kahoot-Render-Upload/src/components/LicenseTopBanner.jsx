@@ -6,7 +6,8 @@ export default function LicenseTopBanner({
   currentUser, 
   systemLicense,
   onOpenProfileModal, 
-  onOpenAuthModal, 
+  onOpenAuthModal,
+  onOpenPricingModal, 
   lang = 'km' 
 }) {
   const [dismissed, setDismissed] = useState(() => {
@@ -84,18 +85,9 @@ export default function LicenseTopBanner({
 
   const handleBuyNow = () => {
     sound.playClick();
-    const cleanHwid = (machineHwid || machineLicense?.hwid || '').replace(/[^a-zA-Z0-9_-]/g, '');
-    const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
-    let link = announcement?.buttonLink || `https://t.me/${username}`;
-    
-    if (link.includes('ac_mart_programer_developer_bot') && botConfig?.botUsername) {
-      link = link.replace('ac_mart_programer_developer_bot', botConfig.botUsername);
+    if (onOpenPricingModal) {
+      onOpenPricingModal();
     }
-    
-    if (link.includes('t.me') && cleanHwid && !link.includes('start=')) {
-      link += (link.includes('?') ? '&' : '?') + `start=HWID_${cleanHwid}`;
-    }
-    window.open(link, '_blank');
   };
 
   const handleEnterKey = () => {

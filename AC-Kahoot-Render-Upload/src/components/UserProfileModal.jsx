@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, School, Lock, Save, Sparkles, Check, KeyRound, Send, Eye, EyeOff } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 
-export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdateUser, lang = 'km' }) {
+export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdateUser, onOpenPricingModal, lang = 'km' }) {
   if (!isOpen || !currentUser) return null;
 
   const [name, setName] = useState(currentUser.name || '');
@@ -181,10 +181,24 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdat
             </div>
           ) : (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-yellow-500/10 via-purple-900/30 to-black/40 border border-yellow-400/30 space-y-2">
-              <h3 className="text-xs font-bold text-yellow-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                <span>{lang === 'km' ? 'បញ្ចូល License Key (Upgrade Pro / VIP)' : 'Activate License Key'}</span>
+              <h3 className="text-xs font-bold text-yellow-300 flex items-center justify-between gap-1.5">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>{lang === 'km' ? 'Upgrade ទៅកាន់ Pro / VIP' : 'Upgrade to Pro / VIP'}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onOpenPricingModal) onOpenPricingModal();
+                  }}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black px-3 py-1 rounded-full text-[10px] font-black transition-all hover:scale-105 shadow-[0_0_10px_rgba(234,179,8,0.4)]"
+                >
+                  ទិញកញ្ចប់ឥឡូវនេះ (Buy Now)
+                </button>
               </h3>
+              
+              <div className="text-[10px] text-yellow-200/60 mt-1 mb-2">ប្រសិនបើមាន License Key សូមបញ្ចូលខាងក្រោម៖</div>
               <div className="flex gap-2">
                 <input
                   type="text"

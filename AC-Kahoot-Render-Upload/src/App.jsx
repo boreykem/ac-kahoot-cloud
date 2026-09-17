@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal.jsx';
 import MasterAdminModal from './components/MasterAdminModal.jsx';
 import UserProfileModal from './components/UserProfileModal.jsx';
 import LicenseTopBanner from './components/LicenseTopBanner.jsx';
+import PricingModal from './components/PricingModal.jsx';
 import { getSavedAccounts, saveAccount, removeSavedAccount } from './utils/accountManager.js';
 
 // Connect to Socket.io backend
@@ -26,6 +27,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('login');
 
   const handleOpenAuthModal = (tab = 'login') => {
@@ -247,6 +249,7 @@ export default function App() {
             systemLicense={systemLicense}
             onOpenProfileModal={() => handleOpenAuthModal('license')}
             onOpenAuthModal={(tab) => handleOpenAuthModal(tab || 'login')}
+            onOpenPricingModal={() => setIsPricingModalOpen(true)}
             lang={lang}
           />
           <Header
@@ -358,7 +361,14 @@ export default function App() {
           setCurrentUser(updatedUser);
           localStorage.setItem('auth_user', JSON.stringify(updatedUser));
         }}
+        onOpenPricingModal={() => setIsPricingModalOpen(true)}
         lang={lang}
+      />
+
+      <PricingModal 
+        isOpen={isPricingModalOpen} 
+        onClose={() => setIsPricingModalOpen(false)} 
+        currentUser={currentUser} 
       />
 
       {/* Master Admin Panel Modal */}

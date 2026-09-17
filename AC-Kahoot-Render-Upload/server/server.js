@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import connectDB from './config/db.js';
 import User from './models/User.js';
 import Quiz from './models/Quiz.js';
@@ -2229,6 +2229,34 @@ app.post('/api/telegram/notify-inquiry', async (req, res) => {
     success: true,
     botUrl: `https://t.me/${username}?start=EMAIL_${(hwid || '').replace(/[^a-zA-Z0-9_-]/g, '')}`
   });
+});
+
+app.post('/api/payment/notify', async (req, res) => {
+  const { email, planKey, planName, planPrice } = req.body;
+  if (!email || !planKey) {
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
+  }
+
+  const adminChatId = currentBotPricing.adminChatId;
+  if (!adminChatId) {
+    return res.status(400).json({ success: false, message: 'Admin Telegram Chat ID not configured.' });
+  }
+
+  try {
+    const message = `🎫 <b>New Payment / Upgrade Ticket</b>\n\n` +
+                    `📧 <b>User Email:</b> <code>${email}</code>\n` +
+                    `🏷 <b>Plan:</b> ${planName} (${planKey})\n` +
+                    `💰 <b>Price:</b> ${planPrice}\n\n` +
+                    `<i>A user has submitted a payment request via the Web UI. Please verify their payment and manually grant them the license in the Master Admin panel.</i>`;
+
+    const inlineKeyboard = [[{ text: '✅ Open Web Dashboard', url: 'https://ac-kahoot-cloud.onrender.com' }]];
+    
+    await sendTelegramMessage(adminChatId, message, 'HTML', { inline_keyboard: inlineKeyboard });
+    res.json({ success: true, message: 'Ticket sent to admin.' });
+  } catch (err) {
+    console.error('Error sending payment notification:', err);
+    res.status(500).json({ success: false, message: 'Failed to notify admin.' });
+  }
 });
 
 async function answerCallbackQuery(callbackQueryId, text = '') {
