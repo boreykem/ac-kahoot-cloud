@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, ShieldAlert, Key, CheckCircle2, 
   Sparkles, X, RefreshCw, Send, CloudLightning
@@ -81,8 +81,8 @@ export default function HardwareActivationModal({ isOpen, onClose, onActivationS
 
   const handleSendTelegram = () => {
     const telegramUsername = botConfig?.botUsername || 'ackahoot_bot';
-    const message = សួស្តី! ខ្ញុំចង់ទិញកញ្ចប់ Pro សម្រាប់គណនី ;
-    const url = https://t.me/\?text=\;
+    const message = `សួស្តី! ខ្ញុំចង់ទិញកញ្ចប់ Pro សម្រាប់គណនី`;
+    const url = `https://t.me/${telegramUsername}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 

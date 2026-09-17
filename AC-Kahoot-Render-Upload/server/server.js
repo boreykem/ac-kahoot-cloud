@@ -505,7 +505,7 @@ app.post('/api/admin/users/:id/reset-password', async (req, res) => {
   
   user.password = newPassword.trim();
   await user.save();
-  res.json({ success: true, message: បានកំណត់លេខសម្ងាត់ថ្មីសម្រាប់  រួចរាល់! });
+  res.json({ success: true, message: `បានកំណត់លេខសម្ងាត់ថ្មីសម្រាប់ ${user.email} រួចរាល់!` });
 });
 
 // Master Admin Endpoints
@@ -923,7 +923,7 @@ app.post('/api/admin/users/:id/reset-device', async (req, res) => {
   user.boundDeviceId = null;
   user.boundDeviceName = null;
   await user.save();
-  res.json({ success: true, message: បានដោះសោ Device ID សម្រាប់  ដោយជោគជ័យ! });
+  res.json({ success: true, message: `បានដោះសោ Device ID សម្រាប់ ${user.email} ដោយជោគជ័យ!` });
 });
 
 // REST API Endpoints
