@@ -2425,7 +2425,7 @@ async function pollTelegramBot() {
                 slipReply += `👤 <b>គណនីផ្ញើ៖</b> ${senderName} (@${msg.from?.username || 'N/A'})\n`;
                 slipReply += `💻 <b>Email៖</b> <code>${state.hwid}</code>\n`;
                 slipReply += `🕒 <b>កាលបរិច្ឆេទ៖</b> ${new Date().toLocaleString('km-KH', { timeZone: 'Asia/Phnom_Penh' })}\n\n`;
-                slipReply += `⏳ លោកគ្រូ បូរី (Admin) នឹងពិនិត្យ និងចេញ <b>License Key</b> ជូនលោកគ្រូ/អ្នកគ្រូតាមរយៈ Bot នេះក្នុងពេលឆាប់ៗនេះ។\n\n`;
+                slipReply += `⏳ លោកគ្រូ បូរី (Admin) នឹងពិនិត្យ និង <b>Upgrade គណនី</b> ជូនលោកគ្រូ/អ្នកគ្រូក្នុងពេលឆាប់ៗនេះ។\n\n`;
                 slipReply += `💡 <i>(ប្រសិនបើយឺតយ៉ាវ លោកគ្រូ/អ្នកគ្រូអាចឆាតទៅកាន់ @${adminUser} បន្ថែមបានផងដែរ)</i>`;
   
                 await sendTelegramMessage(chatId, slipReply, 'HTML');
@@ -2438,11 +2438,10 @@ async function pollTelegramBot() {
                   
                   let planTitle = effectivePlan === '1m' ? 'Pro ប្រចាំខែ (1 Month)' : effectivePlan === '1y' ? 'Pro ប្រចាំឆ្នាំ (1 Year)' : 'Pro ពេញមួយជីវិត (Lifetime)';
                   adminNotice += `🌟 <b>គម្រោង៖</b> <b>${planTitle}</b>\n\n`;
-                  adminNotice += `👉 <i>សូមចុចប៊ូតុងខាងក្រោម ដើម្បីអនុម័ត និងផ្ញើ Key ស្វ័យប្រវត្តិ៖</i>`;
+                  adminNotice += `👉 <i>សូមចូលទៅកាន់ផ្ទាំង Master Admin ក្នុង Website ដើម្បីពិនិត្យ និង Upgrade គណនី។</i>`;
                   
                   const adminKeyboard = [
-                    [{ text: `✅ ទទួលស្គាល់ការបង់ប្រាក់ & ផ្ញើ Key`, callback_data: `approve:${chatId}:${effectivePlan}` }],
-                    [{ text: `❌ បដិសេធ (វិក្កយបត្រក្លែងក្លាយ)`, callback_data: `reject:${chatId}` }]
+                    [{ text: `✅ Open Web Dashboard`, url: `https://ac-kahoot-cloud.onrender.com` }]
                   ];
                   
                   // Forward the photo
