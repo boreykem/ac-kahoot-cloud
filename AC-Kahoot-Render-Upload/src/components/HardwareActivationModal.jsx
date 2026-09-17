@@ -57,7 +57,6 @@ export default function HardwareActivationModal({ isOpen, onClose, onActivationS
   };
 
   const handleSendTelegram = () => {
-    if (!machineInfo?.hwid) return;
     const cleanEmail = (currentUser?.email || '').replace(/[^a-zA-Z0-9@._-]/g, '');
     const b64Email = cleanEmail ? btoa(cleanEmail).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : '';
     const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
