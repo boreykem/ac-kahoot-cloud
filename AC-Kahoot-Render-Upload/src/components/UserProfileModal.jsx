@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { X, User, School, Lock, Save, Sparkles, Check, KeyRound, Send, Eye, EyeOff } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 
@@ -378,3 +378,4 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdat
     </div>
   );
 }
+

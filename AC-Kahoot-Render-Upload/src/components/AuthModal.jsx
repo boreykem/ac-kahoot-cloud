@@ -88,15 +88,16 @@ export default function AuthModal({
   };
 
   const handleSendTelegram = () => {
-    if (!machineInfo?.hwid) return;
-    const cleanHwid = machineInfo.hwid.replace(/[^a-zA-Z0-9_-]/g, '');
+    const userEmail = currentUser?.email || email;
+    if (!userEmail) return;
+    const cleanEmail = userEmail.replace(/[^a-zA-Z0-9@._-]/g, '');
     const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
-    const botUrl = `https://t.me/${username}?start=HWID_${cleanHwid}`;
+    const botUrl = `https://t.me/${username}?start=EMAIL_${cleanEmail}`;
     
     // Auto-copy full text as backup
     const clientName = currentUser?.name || name || 'លោកគ្រូ/អ្នកគ្រូ';
     const adminName = botConfig?.adminName || 'លោកគ្រូ បូរី';
-    const rawMsg = `សួស្តី${adminName}! ខ្ញុំបាទ/នាងខ្ញុំឈ្មោះ ${clientName} ចង់ទិញ License AC-Kahoot Pro។\n\n💻 Hardware Machine ID របស់ខ្ញុំ៖\n${machineInfo.hwid}\n\nសូមជួយបង្កើត License Key ជូនខ្ញុំផង។ សូមអរគុណ!`;
+    const rawMsg = `សួស្តី${adminName}! ខ្ញុំបាទ/នាងខ្ញុំឈ្មោះ ${clientName} ចង់ទិញ License AC-Kahoot Pro។\n\n📧 ឈ្មោះអ៊ីមែល (Email) គណនីខ្ញុំ៖\n${userEmail}\n\nសូមជួយបង្កើត License Key ជូនខ្ញុំផង។ សូមអរគុណ!`;
     try { navigator.clipboard.writeText(rawMsg); } catch(e) {}
     
     setCopiedHwid(true);
@@ -603,42 +604,15 @@ export default function AuthModal({
                 </div>
               )}
 
-              {/* Machine ID Box */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Laptop className="w-4 h-4 text-purple-400" />
-                  លេខសម្គាល់កុំព្យូទ័ររបស់អ្នក (Hardware Machine ID):
-                </label>
-                <div className="flex items-center gap-2 p-2.5 bg-slate-950 border border-purple-500/40 rounded-2xl font-mono text-xs sm:text-sm text-purple-200">
-                  <span className="flex-1 select-all font-bold tracking-wider truncate">
-                    {machineInfo?.hwid || 'កំពុងទាញយក HWID...'}
-                  </span>
-                  <button
-                    onClick={handleCopyHwid}
-                    type="button"
-                    className="px-3 py-1.5 rounded-xl bg-purple-600/40 hover:bg-purple-600/60 border border-purple-400/40 text-xs font-semibold transition-all flex items-center gap-1 text-purple-200 shrink-0"
-                  >
-                    {copiedHwid ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>បាន Copy!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
+              {/* Quick Telegram Send Button */}
+              <div className="space-y-1.5 mt-4">
                 <button
                   onClick={handleSendTelegram}
                   type="button"
-                  className="w-full py-2 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-sky-200 text-xs font-semibold transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-sky-200 text-xs font-semibold transition-all flex items-center justify-center gap-2"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  ផ្ញើ HWID នេះទៅកាន់ Telegram អ្នកលក់ (Buy via Telegram)
+                  ផ្ញើឈ្មោះអ៊ីមែលនេះទៅកាន់ Telegram អ្នកលក់ (Buy via Telegram)
                 </button>
               </div>
 

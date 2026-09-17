@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { X, KeyRound, ExternalLink, Flame } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 
@@ -84,7 +84,7 @@ export default function LicenseTopBanner({
 
   const handleBuyNow = () => {
     sound.playClick();
-    const cleanHwid = (machineHwid || machineLicense?.hwid || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanEmail = (currentUser?.email || '').replace(/[^a-zA-Z0-9@._-]/g, '');
     const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
     let link = announcement?.buttonLink || `https://t.me/${username}`;
     
@@ -165,3 +165,4 @@ export default function LicenseTopBanner({
     </div>
   );
 }
+

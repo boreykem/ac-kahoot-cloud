@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   X, ShieldAlert, Users, BookOpen, Award, CheckCircle2, 
   Trash2, Key, RefreshCw, Download, UserPlus, Sparkles,
@@ -1320,7 +1320,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                       សួស្តី <strong>Kem!</strong> 🙏
                     </div>
                     <div className="text-slate-300 text-xs">
-                      ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <strong>Hardware Machine ID</strong> របស់អ្នកមកកាន់ទីនេះ។
+                      ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <strong>Email អតិថិជន</strong> របស់អ្នកមកកាន់ទីនេះ។
                     </div>
                     <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 space-y-1">
                       <div className="font-bold text-amber-300">🌟 គម្រោងតម្លៃ AC-Kahoot Pro៖</div>
@@ -1791,3 +1791,4 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     </div>
   );
 }
+
