@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, KeyRound, ExternalLink, Flame } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 
@@ -92,8 +92,8 @@ export default function LicenseTopBanner({
       link = link.replace('ac_mart_programer_developer_bot', botConfig.botUsername);
     }
     
-    if (link.includes('t.me') && cleanHwid && !link.includes('start=')) {
-      link += (link.includes('?') ? '&' : '?') + `start=HWID_${cleanHwid}`;
+    if (link.includes('t.me') && cleanEmail && !link.includes('start=')) {
+      link += (link.includes('?') ? '&' : '?') + `start=EMAIL_${cleanEmail}`;
     }
     window.open(link, '_blank');
   };

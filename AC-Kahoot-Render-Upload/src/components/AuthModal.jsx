@@ -599,7 +599,7 @@ export default function AuthModal({
                   <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-xs text-amber-200/90">
                     <strong className="text-amber-300 block text-xs mb-0.5">Free Trial Edition (សាកល្បង)</strong>
-                    ផ្ញើលេខ Machine ID ខាងក្រោមទៅកាន់ Telegram អ្នកលក់ ដើម្បីទទួលបាន License Key ប្រើមួយជីវិត!
+                    ទាក់ទងទៅកាន់ Telegram អ្នកលក់ ដើម្បីទិញ License Key ប្រើមួយជីវិត!
                   </div>
                 </div>
               )}

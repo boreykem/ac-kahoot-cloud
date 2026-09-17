@@ -1,0 +1,169 @@
+[
+  {
+    "id": "lic_1788495817011_fj9o",
+    "key": "ACK-MON-MUTBFWHF-D4AD-13C7",
+    "targetHwid": "ACK-HWID-0AF8-C808-3DC5",
+    "type": "pro_monthly",
+    "typeName": "Pro Monthly (ប្រចាំខែ)",
+    "clientNote": "Generated via 1-Click Telegram Bot Approval",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-09-04T04:23:37.011Z"
+  },
+  {
+    "id": "lic_1788490804281_vi85",
+    "key": "ACK-MON-MUT8GGMW-D062-B469",
+    "targetHwid": "ACK-HWID-0AF8-C808-3DC5",
+    "type": "pro_monthly",
+    "typeName": "Pro Monthly (ប្រចាំខែ)",
+    "clientNote": "Generated via 1-Click Telegram Bot Approval",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-09-04T03:00:04.281Z"
+  },
+  {
+    "id": "lic_1788019752574_ghw1",
+    "key": "ACK-PRO-LEZE-BJXP-FY2Y",
+    "type": "pro_lifetime",
+    "typeName": "Pro Lifetime (ប្រើមួយជីវិត)",
+    "clientNote": "Audit Test Key",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T16:09:12.574Z"
+  },
+  {
+    "id": "lic_1788017844711_5xpn",
+    "key": "ACK-VIP-8VCB-5729-QJMP",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_aay3",
+    "key": "ACK-VIP-NVC9-Z8RD-NPNB",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_18q6",
+    "key": "ACK-VIP-2DFP-Z7XQ-CSKT",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_i0lq",
+    "key": "ACK-VIP-8PJT-3LQV-FFNE",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_y8u5",
+    "key": "ACK-VIP-MFNA-BMLV-N8W4",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_xfmf",
+    "key": "ACK-VIP-HVVD-NW9H-HCUU",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_eg4r",
+    "key": "ACK-VIP-9JEG-Z8QJ-8CBH",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844711_bvk2",
+    "key": "ACK-VIP-LRCV-XS8E-TUJZ",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844710_ju3j",
+    "key": "ACK-VIP-ELTD-HBYP-EYWQ",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.711Z"
+  },
+  {
+    "id": "lic_1788017844710_roy7",
+    "key": "ACK-VIP-D48P-EGD8-7BQK",
+    "type": "vip_unlimited",
+    "typeName": "VIP School (សាលារៀន/ស្ថាប័ន)",
+    "clientNote": "វិទ្យាស្ថានគរុកោសល្យកំពង់ចាម",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:37:24.710Z"
+  },
+  {
+    "id": "key_demo_1",
+    "key": "ACK-PRO-8821-4902-1130",
+    "type": "pro_lifetime",
+    "typeName": "Pro Lifetime (ប្រើមួយជីវិត)",
+    "clientNote": "Sample Pro Key",
+    "used": true,
+    "usedBy": "kemborey.ac@gmail.com",
+    "usedAt": "2026-08-29T15:32:09.444Z",
+    "createdAt": "2026-08-29T15:30:00.000Z"
+  },
+  {
+    "id": "key_demo_2",
+    "key": "ACK-VIP-9941-7723-5512",
+    "type": "vip_unlimited",
+    "typeName": "VIP School Unlimited (សាលារៀន)",
+    "clientNote": "Sample VIP Key",
+    "used": false,
+    "usedBy": null,
+    "usedAt": null,
+    "createdAt": "2026-08-29T15:30:00.000Z"
+  }
+]
