@@ -613,7 +613,6 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                           <th className="p-3.5">គ្រូបង្រៀន (Teacher)</th>
                           <th className="p-3.5">សាលា/ស្ថាប័ន (School)</th>
                           <th className="p-3.5">កម្រិត License</th>
-                          <th className="p-3.5">កុំព្យូទ័រចងភ្ជាប់ (Device ID)</th>
                           <th className="p-3.5 text-center">សកម្មភាព (Actions)</th>
                         </tr>
                       </thead>
@@ -665,27 +664,6 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                                 )}
                               </td>
 
-                              <td className="p-3.5">
-                                {isOwner ? (
-                                  <span className="text-[10px] text-yellow-300/80 font-bold">🌐 គ្រប់ម៉ាស៊ីន (Master)</span>
-                                ) : u.boundDeviceId ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold" title={u.boundDeviceName || u.boundDeviceId}>
-                                      💻 {u.boundDeviceId}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleResetDevice(u.id, u.name)}
-                                      title="ដោះសោ Device ID ដើម្បីឱ្យគ្រូអាចប្តូរ Laptop ថ្មី"
-                                      className="px-1.5 py-0.5 rounded bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 text-[10px] font-bold border border-yellow-400/30 transition-all hover:scale-105"
-                                    >
-                                      🔄 ដោះសោ
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] text-gray-500">⚪ មិនទាន់ចងភ្ជាប់</span>
-                                )}
-                              </td>
 
                               <td className="p-3.5">
                                 <div className="flex items-center justify-center gap-2">
