@@ -556,8 +556,23 @@ app.get('/api/admin/stats', (req, res) => {
 });
 
 app.get('/api/admin/users', async (req, res) => {
-  const users = await User.find({}, '-password').lean();
-  res.json({ success: true, users });
+  const users = await User.find({}, '-password');
+  let hasChanges = false;
+  
+  for (const user of users) {
+    if ((user.license === 'pro_monthly' || user.license === 'pro_annual') && !user.licenseExpiryDate) {
+      if (user.license === 'pro_monthly') {
+        user.licenseExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      } else {
+        user.licenseExpiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      }
+      await user.save();
+      hasChanges = true;
+    }
+  }
+
+  const updatedUsers = hasChanges ? await User.find({}, '-password').lean() : users.map(u => u.toObject ? u.toObject() : u);
+  res.json({ success: true, users: updatedUsers });
 });
 
 app.post('/api/admin/users/:id/license', async (req, res) => {
