@@ -112,7 +112,7 @@ const seedSuperAdmin = async () => {
 };
 seedSuperAdmin();
 connectDB();
-// Migrate Quizzes from JSON to MongoDB
+// Migration functions defined here, but called later after dependencies are initialized
 const migrateQuizzes = async () => {
   try {
     const jsonQuizzes = loadQuizzes();
@@ -148,7 +148,6 @@ const migrateQuizzes = async () => {
     console.error('Failed to migrate quizzes:', error);
   }
 };
-migrateQuizzes();
 
 // Migrate Users from JSON to MongoDB
 const migrateUsers = async () => {
@@ -178,7 +177,6 @@ const migrateUsers = async () => {
     console.error('Failed to migrate users:', error);
   }
 };
-migrateUsers();
 
 const httpServer = createServer(app);
 
@@ -227,6 +225,10 @@ const QUIZ_FILE = path.join(__dirname, 'quizData.json');
 const USERS_FILE = path.join(__dirname, 'userData.json');
 const BOT_PRICING_FILE = path.join(__dirname, 'botPricing.json');
 const TELEGRAM_STATES_FILE = path.join(__dirname, 'telegramUserStates.json');
+
+// Run migrations now that file paths are defined
+migrateQuizzes();
+migrateUsers();
 
 function loadTelegramStates() {
   try {
