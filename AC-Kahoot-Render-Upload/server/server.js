@@ -347,6 +347,15 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ success: false, message: 'អ៊ីមែល ឬលេខសម្ងាត់មិនត្រឹមត្រូវឡើយ!' });
   }
 
+  // Auto-downgrade check upon login
+  if (user.license === 'pro_monthly' || user.license === 'pro_annual') {
+    if (user.licenseExpiryDate && Date.now() > user.licenseExpiryDate.getTime()) {
+      user.license = 'free';
+      user.licenseExpiryDate = null;
+      await user.save();
+    }
+  }
+
   const safeUser = user.toObject();
   delete safeUser.password;
   res.json({ success: true, user: safeUser });
@@ -543,6 +552,15 @@ app.post('/api/admin/users/:id/license', async (req, res) => {
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
   user.license = license || 'free';
+  
+  if (license === 'pro_monthly') {
+    user.licenseExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  } else if (license === 'pro_annual') {
+    user.licenseExpiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 days
+  } else {
+    user.licenseExpiryDate = null;
+  }
+
   await user.save();
   res.json({ success: true, user });
 });
@@ -926,15 +944,30 @@ app.post('/api/admin/users/:id/reset-device', async (req, res) => {
   res.json({ success: true, message: `បានដោះសោ Device ID សម្រាប់ ${user.email} ដោយជោគជ័យ!` });
 });
 
+async function getValidatedUser(userId, userEmail) {
+  if (!userId || !userEmail) return null;
+  const user = await User.findOne({ id: userId, email: new RegExp(`^${userEmail}$`, 'i') });
+  if (!user) return null;
+
+  // Auto-downgrade check
+  if (user.license === 'pro_monthly' || user.license === 'pro_annual') {
+    if (user.licenseExpiryDate && Date.now() > user.licenseExpiryDate.getTime()) {
+      user.license = 'free';
+      user.licenseExpiryDate = null;
+      await user.save();
+    }
+  }
+  return user;
+}
+
 // REST API Endpoints
-app.get('/api/quizzes', (req, res) => {
+app.get('/api/quizzes', async (req, res) => {
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
   const allQuizzes = loadQuizzes();
 
   if (userId && userEmail) {
-    const users = loadUsers();
-    const user = users.find(u => u.id === userId && u.email.toLowerCase() === userEmail.toLowerCase());
+    const user = await getValidatedUser(userId, userEmail);
     if (user && user.role === 'superadmin') {
       return res.json(allQuizzes); // Superadmin sees all
     } else if (user) {
@@ -959,7 +992,7 @@ app.get('/api/quizzes', (req, res) => {
   res.json(publicQuizzes);
 });
 
-app.post('/api/quizzes', (req, res) => {
+app.post('/api/quizzes', async (req, res) => {
   const newQuiz = req.body;
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
@@ -967,8 +1000,7 @@ app.post('/api/quizzes', (req, res) => {
   const existingIdx = quizzes.findIndex(q => q.id === newQuiz.id);
   
   // Basic Auth Check for POST
-  const users = loadUsers();
-  const user = (userId && userEmail) ? users.find(u => u.id === userId && u.email.toLowerCase() === userEmail.toLowerCase()) : null;
+  const user = await getValidatedUser(userId, userEmail);
   const isSuperAdmin = user && user.role === 'superadmin';
 
   // If trying to modify an existing quiz, check ownership
@@ -1013,7 +1045,7 @@ app.post('/api/quizzes', (req, res) => {
   res.json({ success: true, quiz: newQuiz });
 });
 
-app.delete('/api/quizzes/:id', (req, res) => {
+app.delete('/api/quizzes/:id', async (req, res) => {
   const { id } = req.params;
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
@@ -1025,8 +1057,7 @@ app.delete('/api/quizzes/:id', (req, res) => {
   }
 
   const existingQuiz = quizzes[existingIdx];
-  const users = loadUsers();
-  const user = (userId && userEmail) ? users.find(u => u.id === userId && u.email.toLowerCase() === userEmail.toLowerCase()) : null;
+  const user = await getValidatedUser(userId, userEmail);
   const isSuperAdmin = user && user.role === 'superadmin';
 
   if (!isSuperAdmin) {
@@ -1231,10 +1262,22 @@ const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6Lapc8gm
 
 // Gemini AI Quiz Generator API
 app.post('/api/generate-quiz', async (req, res) => {
-  const { topic, lessonText, level = 'university', count = 5, apiKey, modelTier = 'pro', testType = 'post-test', userEmail } = req.body;
+  const { topic, lessonText, level = 'university', count = 5, apiKey, modelTier = 'pro', testType = 'post-test', userEmail, userId } = req.body;
 
-  const users = loadUsers();
-  const user = userEmail ? users.find(u => u.email.toLowerCase() === userEmail.toLowerCase().trim()) : null;
+  let user = null;
+  if (userId && userEmail) {
+    user = await getValidatedUser(userId, userEmail);
+  } else if (userEmail) {
+    user = await User.findOne({ email: new RegExp(`^${userEmail}$`, 'i') });
+    if (user) {
+      if ((user.license === 'pro_monthly' || user.license === 'pro_annual') && user.licenseExpiryDate && Date.now() > user.licenseExpiryDate.getTime()) {
+        user.license = 'free';
+        user.licenseExpiryDate = null;
+        await user.save();
+      }
+    }
+  }
+
   const machineLicense = loadActiveLicense();
   const isPro = (machineLicense && machineLicense.valid) || (user && user.license && user.license !== 'free');
 

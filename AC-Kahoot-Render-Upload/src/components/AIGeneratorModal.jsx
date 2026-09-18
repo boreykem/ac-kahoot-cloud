@@ -228,7 +228,8 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
           testType,
           apiKey: apiKey.trim(),
           modelTier,
-          userEmail: currentUser?.email
+          userEmail: currentUser?.email,
+          userId: currentUser?.id
         })
       });
 

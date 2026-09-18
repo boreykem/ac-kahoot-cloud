@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'free',
   },
+  licenseExpiryDate: {
+    type: Date,
+    default: null,
+  },
   avatar: {
     type: String,
     default: '👨‍🏫',
