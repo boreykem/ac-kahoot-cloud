@@ -5,10 +5,11 @@
     "email": "baureykem@gmail.com",
     "password": "092673641",
     "role": "superadmin",
-    "license": "founder_unlimited",
+    "license": "PRO_LIFETIME",
     "avatar": "👑",
     "school": "AC-Kahoot! HQ (Platform Owner)",
-    "createdAt": "2026-01-01T00:00:00.000Z"
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "boundDeviceName": "DESKTOP-9R99F4E (win32)"
   },
   {
     "id": "teacher_demo",

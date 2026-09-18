@@ -26,7 +26,6 @@ export default function AuthModal({
   const [school, setSchool] = useState('');
   const [avatar, setAvatar] = useState('👨‍🏫');
   const [licenseKeyInput, setLicenseKeyInput] = useState('');
-  const [regLicenseKey, setRegLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -157,16 +156,12 @@ export default function AuthModal({
           email, 
           password, 
           school, 
-          avatar,
-          licenseKey: regLicenseKey.trim() || undefined
+          avatar
         })
       });
       const data = await res.json();
       if (data.success && data.user) {
         sound.playCorrect();
-        if (regLicenseKey.trim()) {
-          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        }
         if (onLoginSuccess) onLoginSuccess(data.user, data.token);
         onClose();
       } else {
@@ -550,20 +545,6 @@ export default function AuthModal({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-amber-300 mb-1 flex items-center gap-1">
-                  <Key className="w-3.5 h-3.5" />
-                  <span>លេខកូដ License Key (បើមាន / Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={regLicenseKey}
-                  onChange={(e) => setRegLicenseKey(e.target.value)}
-                  placeholder="ឧទាហរណ៍៖ ACK-PRO-LIFE-XXXX-YYYY"
-                  className="w-full bg-black/50 border border-amber-500/30 focus:border-amber-400 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-slate-600 focus:outline-none"
-                />
               </div>
 
               <button
