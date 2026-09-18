@@ -58,6 +58,29 @@ export default function App() {
     }
   };
 
+  const fetchCurrentUser = async () => {
+    if (!currentUser?.id || !currentUser?.email) return;
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: {
+          'x-user-id': currentUser.id,
+          'x-user-email': currentUser.email
+        }
+      });
+      const data = await res.json();
+      if (data && data.success && data.user) {
+        // Update user state if there are changes (e.g. license updated by admin)
+        if (JSON.stringify(currentUser) !== JSON.stringify(data.user)) {
+          setCurrentUser(data.user);
+          saveAccount(data.user);
+          setSavedAccounts(getSavedAccounts());
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch fresh user profile", e);
+    }
+  };
+
   const handleToggleLang = () => {
     const nextLang = lang === 'km' ? 'en' : 'km';
     setLang(nextLang);
@@ -119,6 +142,7 @@ export default function App() {
     // Fetch Quizzes & License
     fetchQuizzes();
     checkLicenseStatus();
+    fetchCurrentUser();
   }, []);
 
   const fetchQuizzes = async () => {

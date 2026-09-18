@@ -357,6 +357,25 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ success: true, user: safeUser });
 });
 
+// Get Current User Profile (Fresh fetch)
+app.get('/api/auth/me', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const userEmail = req.headers['x-user-email'];
+  
+  if (!userId || !userEmail) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const user = await getValidatedUser(userId, userEmail);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  const safeUser = user.toObject();
+  delete safeUser.password;
+  res.json({ success: true, user: safeUser });
+});
+
 // Change Password Endpoint (for logged-in user or master admin)
 app.post('/api/auth/change-password', async (req, res) => {
   const { userId, currentPassword, newPassword } = req.body;
