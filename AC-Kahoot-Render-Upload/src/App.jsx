@@ -52,17 +52,6 @@ export default function App() {
       const data = await res.json();
       if (data && data.success && data.activeLicense) {
         setSystemLicense(data.activeLicense);
-        if (data.activeLicense.isLicensed) {
-          setCurrentUser(prev => {
-            if (prev) {
-              const updated = { ...prev, license: data.activeLicense.plan || 'PRO_LIFETIME' };
-              saveAccount(updated);
-              setSavedAccounts(getSavedAccounts());
-              return updated;
-            }
-            return prev;
-          });
-        }
       }
     } catch (e) {
       console.warn("Could not fetch license info", e);
