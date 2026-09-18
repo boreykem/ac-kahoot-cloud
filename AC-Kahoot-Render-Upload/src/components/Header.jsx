@@ -86,7 +86,7 @@ export default function Header({
             className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] sm:text-[11px] font-bold tracking-wider bg-purple-600/80 hover:bg-purple-500 text-white border border-purple-400/40 flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95 transition-all"
             title={lang === 'km' ? 'Switch to English' : 'ប្តូរទៅភាសាខ្មែរ'}
           >
-            <span>{lang === 'km' ? '🇰🇭 KHMER' : '🇬🇧 ENGLISH'}</span>
+            <span>{lang === 'km' ? '🇰🇭 KH' : '🇬🇧 ENG'}</span>
           </button>
 
           {/* Teacher Login / Profile & License Pill */}
