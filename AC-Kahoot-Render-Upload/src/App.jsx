@@ -134,7 +134,12 @@ export default function App() {
 
   const fetchQuizzes = async () => {
     try {
-      const res = await fetch('/api/quizzes');
+      const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.id && currentUser?.email) {
+        headers['x-user-id'] = currentUser.id;
+        headers['x-user-email'] = currentUser.email;
+      }
+      const res = await fetch('/api/quizzes', { headers });
       const data = await res.json();
       setQuizzes(data);
     } catch (err) {
@@ -155,8 +160,18 @@ export default function App() {
   const handleDeleteQuiz = async (quizId) => {
     if (!window.confirm(lang === 'km' ? 'តើអ្នកពិតជាចង់លុបវិញ្ញាសានេះមែនទេ?' : 'Are you sure you want to delete this quiz?')) return;
     try {
-      await fetch(`/api/quizzes/${quizId}`, { method: 'DELETE' });
-      setQuizzes(quizzes.filter(q => q.id !== quizId));
+      const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.id && currentUser?.email) {
+        headers['x-user-id'] = currentUser.id;
+        headers['x-user-email'] = currentUser.email;
+      }
+      const res = await fetch(`/api/quizzes/${quizId}`, { method: 'DELETE', headers });
+      const data = await res.json();
+      if (data.success) {
+        setQuizzes(quizzes.filter(q => q.id !== quizId));
+      } else {
+        alert(data.message || 'Error deleting quiz');
+      }
     } catch (err) {
       console.error(err);
     }
@@ -186,9 +201,15 @@ export default function App() {
         isOfficial: currentUser?.role === 'superadmin' ? (quizToSave.isOfficial ?? true) : false
       };
 
+      const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.id && currentUser?.email) {
+        headers['x-user-id'] = currentUser.id;
+        headers['x-user-email'] = currentUser.email;
+      }
+
       const res = await fetch('/api/quizzes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(quizWithAuthor)
       });
       const data = await res.json();

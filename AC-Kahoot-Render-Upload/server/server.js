@@ -928,18 +928,69 @@ app.post('/api/admin/users/:id/reset-device', async (req, res) => {
 
 // REST API Endpoints
 app.get('/api/quizzes', (req, res) => {
-  res.json(loadQuizzes());
+  const userId = req.headers['x-user-id'];
+  const userEmail = req.headers['x-user-email'];
+  const allQuizzes = loadQuizzes();
+
+  if (userId && userEmail) {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId && u.email.toLowerCase() === userEmail.toLowerCase());
+    if (user && user.role === 'superadmin') {
+      return res.json(allQuizzes); // Superadmin sees all
+    } else if (user) {
+      // Teacher sees official + their own
+      const filtered = allQuizzes.filter(q => 
+        q.isOfficial || 
+        !q.authorEmail || 
+        q.authorEmail === 'official' || 
+        q.authorEmail.toLowerCase() === user.email.toLowerCase() || 
+        q.authorId === user.id
+      );
+      return res.json(filtered);
+    }
+  }
+
+  // Guest / No Auth sees only official
+  const publicQuizzes = allQuizzes.filter(q => 
+    q.isOfficial || 
+    !q.authorEmail || 
+    q.authorEmail === 'official'
+  );
+  res.json(publicQuizzes);
 });
 
 app.post('/api/quizzes', (req, res) => {
   const newQuiz = req.body;
+  const userId = req.headers['x-user-id'];
+  const userEmail = req.headers['x-user-email'];
   const quizzes = loadQuizzes();
   const existingIdx = quizzes.findIndex(q => q.id === newQuiz.id);
+  
+  // Basic Auth Check for POST
+  const users = loadUsers();
+  const user = (userId && userEmail) ? users.find(u => u.id === userId && u.email.toLowerCase() === userEmail.toLowerCase()) : null;
+  const isSuperAdmin = user && user.role === 'superadmin';
+
+  // If trying to modify an existing quiz, check ownership
+  if (existingIdx >= 0) {
+    const existingQuiz = quizzes[existingIdx];
+    if (!isSuperAdmin) {
+       // Only author can edit
+       if (!user || (existingQuiz.authorEmail?.toLowerCase() !== user.email.toLowerCase() && existingQuiz.authorId !== user.id)) {
+         return res.status(403).json({ success: false, message: 'អ្នកមិនមានសិទ្ធិកែប្រែវិញ្ញាសារបស់អ្នកដទៃទេ!' });
+       }
+    }
+  } else {
+    // If it's a new quiz, enforce the true author identity unless superadmin
+    if (!isSuperAdmin && user) {
+       newQuiz.authorId = user.id;
+       newQuiz.authorEmail = user.email;
+       newQuiz.authorName = user.name;
+    }
+  }
 
   // Free Tier Quiz Limit: Max 10 Quizzes
   if (existingIdx === -1 && newQuiz.authorEmail && newQuiz.authorEmail !== 'official') {
-    const users = loadUsers();
-    const user = users.find(u => u.email.toLowerCase() === newQuiz.authorEmail.toLowerCase());
     const machineLicense = loadActiveLicense();
     const isPro = (machineLicense && machineLicense.valid) || (user && user.license && user.license !== 'free');
     if (!isPro) {
@@ -964,7 +1015,26 @@ app.post('/api/quizzes', (req, res) => {
 
 app.delete('/api/quizzes/:id', (req, res) => {
   const { id } = req.params;
+  const userId = req.headers['x-user-id'];
+  const userEmail = req.headers['x-user-email'];
+
   let quizzes = loadQuizzes();
+  const existingIdx = quizzes.findIndex(q => q.id === id);
+  if (existingIdx === -1) {
+    return res.status(404).json({ success: false, message: 'រកមិនឃើញវិញ្ញាសានេះទេ!' });
+  }
+
+  const existingQuiz = quizzes[existingIdx];
+  const users = loadUsers();
+  const user = (userId && userEmail) ? users.find(u => u.id === userId && u.email.toLowerCase() === userEmail.toLowerCase()) : null;
+  const isSuperAdmin = user && user.role === 'superadmin';
+
+  if (!isSuperAdmin) {
+    if (!user || (existingQuiz.authorEmail?.toLowerCase() !== user.email.toLowerCase() && existingQuiz.authorId !== user.id)) {
+       return res.status(403).json({ success: false, message: 'អ្នកមិនមានសិទ្ធិលុបវិញ្ញាសារបស់អ្នកដទៃទេ!' });
+    }
+  }
+
   quizzes = quizzes.filter(q => q.id !== id);
   saveQuizzes(quizzes);
   res.json({ success: true });
