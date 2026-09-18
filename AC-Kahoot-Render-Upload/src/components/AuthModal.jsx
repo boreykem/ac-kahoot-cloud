@@ -407,7 +407,7 @@ export default function AuthModal({
                 <div className="relative">
                   <Mail className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -518,7 +518,7 @@ export default function AuthModal({
                 <div className="relative">
                   <Mail className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -692,7 +692,7 @@ export default function AuthModal({
                     <div className="relative">
                       <Mail className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
-                        type="email"
+                        type="text"
                         required
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
