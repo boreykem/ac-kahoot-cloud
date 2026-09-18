@@ -150,6 +150,36 @@ const migrateQuizzes = async () => {
 };
 migrateQuizzes();
 
+// Migrate Users from JSON to MongoDB
+const migrateUsers = async () => {
+  try {
+    const jsonUsers = loadUsers();
+    let migratedCount = 0;
+    for (const u of jsonUsers) {
+      const exists = await User.findOne({ email: new RegExp(`^${u.email}$`, 'i') });
+      if (!exists) {
+        await User.create({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          password: u.password,
+          role: u.role || 'teacher',
+          license: u.license || 'free',
+          avatar: u.avatar || '👨‍🏫',
+          school: u.school || '',
+          licenseExpiryDate: u.licenseExpiryDate ? new Date(u.licenseExpiryDate) : null,
+          aiGenerationsCount: u.aiGenerationsCount || 0
+        });
+        migratedCount++;
+      }
+    }
+    if (migratedCount > 0) console.log(`✅ Migrated ${migratedCount} users to MongoDB!`);
+  } catch (error) {
+    console.error('Failed to migrate users:', error);
+  }
+};
+migrateUsers();
+
 const httpServer = createServer(app);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ac-kahoot-super-secret-key-2026';
