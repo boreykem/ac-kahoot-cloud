@@ -68,6 +68,22 @@ export default function App() {
           'x-user-email': currentUser.email
         }
       });
+      
+      if (res.status === 401 || res.status === 403) {
+        // Token is invalid, expired, or missing. Force logout for this user.
+        console.warn("Session invalid. Forcing logout.");
+        removeSavedAccount(currentUser.email);
+        const remaining = getSavedAccounts();
+        setSavedAccounts(remaining);
+        if (remaining.length > 0) {
+          setCurrentUser(remaining[0]);
+        } else {
+          setCurrentUser(null);
+          localStorage.removeItem('auth_user');
+        }
+        return;
+      }
+
       const data = await res.json();
       if (data && data.success && data.user) {
         const updatedUser = { ...data.user, token: currentUser.token };
