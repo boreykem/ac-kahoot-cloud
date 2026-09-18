@@ -400,8 +400,8 @@ export default function App() {
         isOpen={isAuthModalOpen}
         initialTab={authModalTab}
         onClose={() => setIsAuthModalOpen(false)}
-        onLoginSuccess={(user) => {
-          handleLoginSuccess(user);
+        onLoginSuccess={(user, token) => {
+          handleLoginSuccess(user, token);
           fetchQuizzes();
           checkLicenseStatus();
         }}
