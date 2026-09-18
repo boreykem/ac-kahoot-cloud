@@ -201,7 +201,7 @@ export default function Header({
 
           {/* Dropdown Menu */}
           {isLevelMenuOpen && (
-            <div className="absolute top-full left-0 mt-1.5 w-48 sm:w-56 glass-panel bg-[#24084c]/95 border border-purple-400/40 rounded-2xl shadow-2xl p-1.5 z-50 animate-scale-in">
+            <div className="absolute top-full left-0 mt-1.5 w-48 sm:w-56 bg-[#1a0438] border border-purple-400/40 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-1.5 z-50 animate-scale-in overflow-hidden">
               <div className="text-[10px] uppercase font-bold text-purple-300/70 px-2.5 py-1 tracking-wider border-b border-white/10 mb-1">
                 {lang === 'km' ? 'ជ្រើសរើសកម្រិតសិក្សា' : 'Filter by Level'}
               </div>

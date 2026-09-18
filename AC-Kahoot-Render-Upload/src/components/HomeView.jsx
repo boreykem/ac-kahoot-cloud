@@ -88,7 +88,7 @@ export default function HomeView({
         <div className="relative z-10 max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
-            <span>ប្រព័ន្ធសំណួរ-ចម្លើយឆ្លាតវៃជំនាន់ថ្មី ២០២៦</span>
+            <span>{lang === 'km' ? 'ប្រព័ន្ធសំណួរ-ចម្លើយឆ្លាតវៃជំនាន់ថ្មី ២០២៦' : 'Next-Gen Smart Q&A System 2026'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight font-khmer">
@@ -324,7 +324,7 @@ export default function HomeView({
 
                   {/* Author / Official Tag */}
                   <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-purple-200 border border-white/20">
-                    {quiz.isOfficial ? '👑 ផ្លូវការ (Official)' : `👤 ${quiz.authorName || 'Teacher'}`}
+                    {quiz.isOfficial ? (lang === 'km' ? '👑 ផ្លូវការ (Official)' : '👑 Official') : `👤 ${quiz.authorName || 'Teacher'}`}
                   </div>
 
                   {/* Level Tag */}

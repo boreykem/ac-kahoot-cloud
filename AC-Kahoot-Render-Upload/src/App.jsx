@@ -383,17 +383,19 @@ export default function App() {
       {currentView === 'home' && (
         <footer className="glass-panel border-t border-white/10 py-6 text-center text-xs text-purple-200/70 font-khmer mt-12 space-y-2">
           <p>© 2026 AC-Kahoot! - វេទិកាសំណួរ & សិក្សាល្បែងអន្តរកម្មកម្ពុជា</p>
-          <p className="flex items-center justify-center gap-2">
-            <span>ទាក់ទង / គាំទ្រ៖</span>
-            <a
-              href="https://t.me/ac_mart_programer_developer_bot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#229ED9]/20 hover:bg-[#229ED9]/40 text-[#54c4f8] hover:text-white border border-[#229ED9]/40 font-bold transition-all hover:scale-105"
-            >
-              <span>✈️ Telegram Bot: @ac_mart_programer_developer_bot</span>
-            </a>
-          </p>
+          {!(currentUser?.license && currentUser.license !== 'free') && !systemLicense?.isLicensed && (
+            <p className="flex items-center justify-center gap-2">
+              <span>ទាក់ទង / គាំទ្រ៖</span>
+              <a
+                href="https://t.me/ac_mart_programer_developer_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#229ED9]/20 hover:bg-[#229ED9]/40 text-[#54c4f8] hover:text-white border border-[#229ED9]/40 font-bold transition-all hover:scale-105"
+              >
+                <span>✈️ Telegram Bot: @ac_mart_programer_developer_bot</span>
+              </a>
+            </p>
+          )}
         </footer>
       )}
     </div>
