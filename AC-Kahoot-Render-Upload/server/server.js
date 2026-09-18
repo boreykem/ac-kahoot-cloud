@@ -303,7 +303,7 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ success: false, message: 'សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់!' });
   }
 
-  if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(cleanEmail)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     return res.status(400).json({ success: false, message: 'ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវឡើយ (ឧ. name@domain.com)!' });
   }
 
