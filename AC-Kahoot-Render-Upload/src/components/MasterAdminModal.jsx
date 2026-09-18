@@ -7,6 +7,7 @@ import {
   Send, DollarSign, Bot, MessageSquare, Phone, QrCode, Upload, Image as ImageIcon, CreditCard
 } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
+import { compressImage } from '../utils/imageCompressor';
 
 export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 'km' }) {
   const [activeTab, setActiveTab] = useState('teachers'); // 'teachers' | 'announcement' | 'bot_pricing' | 'marketing' | 'security'
@@ -1233,18 +1234,21 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              if (file.size > 4 * 1024 * 1024) {
-                                alert('ទំហំរូបភាពធំពេក (សូមជ្រើសរូបក្រោម 4MB)');
+                              if (file.size > 8 * 1024 * 1024) {
+                                alert('ទំហំរូបភាពធំពេក (សូមជ្រើសរូបក្រោម 8MB)');
                                 return;
                               }
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                setBotPricing(prev => ({ ...prev, khqrImage: event.target.result }));
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                const compressedDataUrl = await compressImage(file, 800, 800, 0.7);
+                                setBotPricing(prev => ({ ...prev, khqrImage: compressedDataUrl }));
+                              } catch (err) {
+                                console.error('Image compression failed', err);
+                                alert('ការបង្ហោះរូបភាពមានបញ្ហា។ សូមសាកល្បងម្ដងទៀត!');
+                              }
+                              e.target.value = '';
                             }}
                             className="hidden"
                           />

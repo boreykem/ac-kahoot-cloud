@@ -570,8 +570,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូលអ៊ីមែលរបស់អ្នក!' });
   }
 
-  const users = loadUsers();
-  const user = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
   if (!user) {
     return res.status(404).json({ success: false, message: 'មិនមានគណនីដែលមានអ៊ីមែលនេះនៅក្នុងប្រព័ន្ធឡើយ!' });
   }
@@ -592,7 +592,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // Verify OTP & Set New Password
-app.post('/api/auth/verify-reset-otp', (req, res) => {
+app.post('/api/auth/verify-reset-otp', async (req, res) => {
   const { email, otp, newPassword } = req.body;
   if (!email || !otp || !newPassword) {
     return res.status(400).json({ success: false, message: 'សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់!' });
@@ -603,15 +603,15 @@ app.post('/api/auth/verify-reset-otp', (req, res) => {
     return res.status(400).json({ success: false, message: 'លេខកូដ OTP មិនត្រឹមត្រូវ ឬបានផុតកំណត់ (១៥ នាទី)!' });
   }
 
-  const users = loadUsers();
-  const user = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
   if (!user) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
   }
 
   user.password = newPassword.trim();
-  saveUsers(users);
-  resetOtpMap.delete(email.toLowerCase().trim());
+  await user.save();
+  resetOtpMap.delete(cleanEmail);
 
   res.json({
     success: true,
@@ -635,7 +635,7 @@ app.post('/api/admin/users/:id/reset-password', verifyToken, isAdmin, async (req
 // Master Admin Endpoints
 app.get('/api/admin/stats', verifyToken, isAdmin, async (req, res) => {
   const users = await User.find({}).lean();
-  const quizzes = loadQuizzes(); // Will be replaced by MongoDB soon
+  const quizzes = await Quiz.find({}).lean();
   const totalQuestions = quizzes.reduce((acc, q) => acc + (q.questions?.length || 0), 0);
   const activeRooms = rooms.size;
   const proLicenses = users.filter(u => u.license && (u.license.includes('pro') || u.license.includes('founder'))).length;
@@ -878,7 +878,7 @@ app.get('/api/license/machine-info', (req, res) => {
 });
 
 // Activate Machine via Cryptographic License Key (Offline HWID)
-app.post('/api/license/activate-hwid', (req, res) => {
+app.post('/api/license/activate-hwid', async (req, res) => {
   const { licenseKey, clientName, email } = req.body;
   if (!licenseKey) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូល License Key ឱ្យបានត្រឹមត្រូវ!' });
@@ -891,13 +891,13 @@ app.post('/api/license/activate-hwid', (req, res) => {
 
   // Also upgrade user if email is provided
   if (email) {
-    const users = loadUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
     if (user) {
       user.license = result.license.plan;
       user.boundDeviceId = result.license.hwid;
       user.boundDeviceName = `${os.hostname()} (${os.platform()})`;
-      saveUsers(users);
+      await user.save();
     }
   }
 
@@ -1537,7 +1537,7 @@ ${bloomInstructions}
               
               if (isTrialUsage && user) {
                 user.aiGenerationsCount = (user.aiGenerationsCount || 0) + 1;
-                saveUsers(users);
+                await user.save();
               }
 
               return res.json({

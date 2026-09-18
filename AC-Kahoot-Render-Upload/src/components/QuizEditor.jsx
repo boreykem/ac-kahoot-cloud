@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Save, ArrowLeft, Clock, Award, CheckCircle, Image as ImageIcon, HelpCircle, Sparkles, Shuffle, Printer, Edit3, Link as LinkIcon } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
+import { compressImage } from '../utils/imageCompressor';
 import AIGeneratorModal from './AIGeneratorModal.jsx';
 
 export default function QuizEditor({ initialQuiz, onSave, onCancel, currentUser, lang = 'km' }) {
@@ -258,18 +259,22 @@ export default function QuizEditor({ initialQuiz, onSave, onCancel, currentUser,
     setQuestions(updated);
   };
 
-  const handleQuestionImageUpload = (e) => {
+  const handleQuestionImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("ទំហំរូបភាពធំពេក! (អតិបរមា 5MB)");
+    if (file.size > 8 * 1024 * 1024) {
+      alert("ទំហំរូបភាពធំពេក! (អតិបរមា 8MB)");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      handleUpdateCurrentQ('image', event.target.result);
-    };
-    reader.readAsDataURL(file);
+    
+    try {
+      const compressedDataUrl = await compressImage(file, 1024, 1024, 0.7);
+      handleUpdateCurrentQ('image', compressedDataUrl);
+    } catch (err) {
+      console.error('Image compression failed', err);
+      alert('មានបញ្ហាក្នុងការបង្ហោះរូបភាព!');
+    }
+    
     e.target.value = '';
   };
 
