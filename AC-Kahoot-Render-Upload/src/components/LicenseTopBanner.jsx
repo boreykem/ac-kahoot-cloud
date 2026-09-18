@@ -59,17 +59,15 @@ export default function LicenseTopBanner({
   // If dismissed by normal user, hide
   if (dismissed && !isSuperAdmin) return null;
 
-  // Determine if machine or user is already licensed
+  // Determine if user is already licensed
   const isLicensed = Boolean(
-    (systemLicense && systemLicense.isLicensed) ||
-    (machineLicense && machineLicense.isLicensed) ||
-    (currentUser?.license && 
-     currentUser.license.toLowerCase() !== 'free' && 
-     currentUser.license.toLowerCase() !== 'free_tier' && 
-     currentUser.license.toLowerCase() !== 'trial')
+    currentUser?.license && 
+    currentUser.license.toLowerCase() !== 'free' && 
+    currentUser.license.toLowerCase() !== 'free_tier' && 
+    currentUser.license.toLowerCase() !== 'trial'
   );
 
-  // If machine is activated or user has Pro/VIP/Paid license -> NEVER show promotional banner
+  // If user has Pro/VIP/Paid license -> NEVER show promotional banner
   if (isLicensed && !isSuperAdmin) return null;
 
   // If announcement is explicitly disabled -> hide banner

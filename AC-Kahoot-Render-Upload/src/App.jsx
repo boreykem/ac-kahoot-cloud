@@ -393,7 +393,7 @@ export default function App() {
       {currentView === 'home' && (
         <footer className="glass-panel border-t border-white/10 py-6 text-center text-xs text-purple-200/70 font-khmer mt-12 space-y-2">
           <p>© 2026 AC-Kahoot! - វេទិកាសំណួរ & សិក្សាល្បែងអន្តរកម្មកម្ពុជា</p>
-          {!(currentUser?.license && currentUser.license !== 'free') && !systemLicense?.isLicensed && (
+          {!(currentUser?.license && currentUser.license !== 'free') && (
             <p className="flex items-center justify-center gap-2">
               <span>ទាក់ទង / គាំទ្រ៖</span>
               <a
