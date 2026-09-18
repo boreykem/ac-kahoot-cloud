@@ -63,16 +63,17 @@ export default function App() {
     try {
       const res = await fetch('/api/auth/me', {
         headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
           'x-user-id': currentUser.id,
           'x-user-email': currentUser.email
         }
       });
       const data = await res.json();
       if (data && data.success && data.user) {
-        // Update user state if there are changes (e.g. license updated by admin)
-        if (JSON.stringify(currentUser) !== JSON.stringify(data.user)) {
-          setCurrentUser(data.user);
-          saveAccount(data.user);
+        const updatedUser = { ...data.user, token: currentUser.token };
+        if (JSON.stringify(currentUser) !== JSON.stringify(updatedUser)) {
+          setCurrentUser(updatedUser);
+          saveAccount(updatedUser);
           setSavedAccounts(getSavedAccounts());
         }
       }
@@ -87,9 +88,10 @@ export default function App() {
     localStorage.setItem('app_lang', nextLang);
   };
 
-  const handleLoginSuccess = (user) => {
-    saveAccount(user);
-    setCurrentUser(user);
+  const handleLoginSuccess = (user, token) => {
+    const userWithToken = token ? { ...user, token } : user;
+    saveAccount(userWithToken);
+    setCurrentUser(userWithToken);
     setSavedAccounts(getSavedAccounts());
   };
 
@@ -148,6 +150,9 @@ export default function App() {
   const fetchQuizzes = async () => {
     try {
       const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.token) {
+        headers['Authorization'] = `Bearer ${currentUser.token}`;
+      }
       if (currentUser?.id && currentUser?.email) {
         headers['x-user-id'] = currentUser.id;
         headers['x-user-email'] = currentUser.email;
@@ -174,6 +179,9 @@ export default function App() {
     if (!window.confirm(lang === 'km' ? 'តើអ្នកពិតជាចង់លុបវិញ្ញាសានេះមែនទេ?' : 'Are you sure you want to delete this quiz?')) return;
     try {
       const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.token) {
+        headers['Authorization'] = `Bearer ${currentUser.token}`;
+      }
       if (currentUser?.id && currentUser?.email) {
         headers['x-user-id'] = currentUser.id;
         headers['x-user-email'] = currentUser.email;
@@ -215,6 +223,9 @@ export default function App() {
       };
 
       const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.token) {
+        headers['Authorization'] = `Bearer ${currentUser.token}`;
+      }
       if (currentUser?.id && currentUser?.email) {
         headers['x-user-id'] = currentUser.id;
         headers['x-user-email'] = currentUser.email;
@@ -409,8 +420,8 @@ export default function App() {
       <MasterAdminModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
-        currentUser={currentUser}
         lang={lang}
+        currentUser={currentUser}
       />
 
       {/* Footer in Home View */}

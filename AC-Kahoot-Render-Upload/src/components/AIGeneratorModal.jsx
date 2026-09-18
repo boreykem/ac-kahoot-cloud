@@ -217,9 +217,14 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
     }
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.token) {
+        headers['Authorization'] = `Bearer ${currentUser.token}`;
+      }
+
       const res = await fetch('/api/generate-quiz', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           topic,
           lessonText, // Passed to backend context

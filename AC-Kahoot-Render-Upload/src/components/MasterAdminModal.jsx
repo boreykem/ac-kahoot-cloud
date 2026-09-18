@@ -73,16 +73,20 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
       fetchAdminData();
     }
   }, [isOpen]);
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    ...(currentUser?.token ? { 'Authorization': `Bearer ${currentUser.token}` } : {})
+  };
 
   const fetchAdminData = async () => {
     setLoading(true);
     try {
       const [statsRes, usersRes, licRes, annRes, botRes] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/admin/users'),
-        fetch('/api/admin/licenses'),
+        fetch('/api/admin/stats', { headers: authHeaders }),
+        fetch('/api/admin/users', { headers: authHeaders }),
+        fetch('/api/admin/licenses', { headers: authHeaders }),
         fetch('/api/announcement'),
-        fetch('/api/admin/bot-pricing')
+        fetch('/api/admin/bot-pricing', { headers: authHeaders })
       ]);
       const statsData = await statsRes.json();
       const usersData = await usersRes.json();
@@ -109,7 +113,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/bot-pricing', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(botPricing)
       });
       const data = await res.json();
@@ -133,7 +137,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/bot/test-connection', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ botToken: botPricing.botToken })
       });
       const data = await res.json();
@@ -161,7 +165,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/bot/send-test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ adminChatId: botPricing.adminChatId })
       });
       const data = await res.json();
@@ -185,7 +189,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/licenses/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           type: licenseTypeToGen,
           clientNote: licenseClientNote,
@@ -210,7 +214,10 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     if (!window.confirm('តើអ្នកពិតជាចង់លុប ឬដកហូត License Key នេះមែនទេ?')) return;
     sound.playClick();
     try {
-      const res = await fetch(`/api/admin/licenses/${licId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/licenses/${licId}`, { 
+        method: 'DELETE',
+        headers: authHeaders
+      });
       const data = await res.json();
       if (data.success) {
         setLicenses(licenses.filter(l => l.id !== licId && l.key !== licId));
@@ -238,7 +245,10 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     if (!window.confirm(`តើអ្នកពិតជាចង់ដោះសោ Device ID សម្រាប់ ${userName} ដើម្បីឱ្យគាត់អាចប្តូរទៅប្រើ Laptop ថ្មីមែនទេ?`)) return;
     sound.playClick();
     try {
-      const res = await fetch(`/api/admin/users/${userId}/reset-device`, { method: 'POST' });
+      const res = await fetch(`/api/admin/users/${userId}/reset-device`, { 
+        method: 'POST',
+        headers: authHeaders
+      });
       const data = await res.json();
       if (data.success) {
         setActionNotice(data.message);
@@ -255,7 +265,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/users/${userId}/license`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ license: newLicense })
       });
       const data = await res.json();
@@ -274,7 +284,10 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     if (!window.confirm(lang === 'km' ? `តើអ្នកពិតជាចង់លុបគណនីគ្រូ "${userName}" មែនទេ?` : `Are you sure you want to delete teacher "${userName}"?`)) return;
     sound.playClick();
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/users/${userId}`, { 
+        method: 'DELETE',
+        headers: authHeaders
+      });
       const data = await res.json();
       if (data.success) {
         sound.playCorrect();
@@ -305,7 +318,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           userId: currentUser?.id || 'owner_master',
           currentPassword: currentAdminPass,
@@ -340,7 +353,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/users/${resetTargetUser.id}/reset-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ newPassword: newTargetPassword })
       });
       const data = await res.json();
@@ -366,7 +379,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/announcement', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           ...announcementData,
           adminId: currentUser?.id

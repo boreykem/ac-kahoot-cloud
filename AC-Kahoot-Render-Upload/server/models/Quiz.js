@@ -1,45 +1,29 @@
 import mongoose from 'mongoose';
 
 const questionSchema = new mongoose.Schema({
+  id: { type: String, required: true },
   question: { type: String, required: true },
-  answers: { type: [String], required: true },
-  correctAnswer: { type: Number, required: true }, // Index of the correct answer
   timeLimit: { type: Number, default: 20 },
-  points: { type: Number, default: 1000 },
-  type: { type: String, default: 'quiz' } // e.g. 'quiz', 'true_false'
-});
+  points: { type: Number, default: 10 },
+  options: [{ type: String, required: true }],
+  correctIndex: { type: Number, required: true },
+  explanation: { type: String, default: '' },
+  image: { type: String, default: '' }
+}, { _id: false });
 
 const quizSchema = new mongoose.Schema({
-  id: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    default: ''
-  },
-  coverImage: {
-    type: String,
-    default: ''
-  },
-  creatorId: {
-    type: String, // References User.id
-    required: true
-  },
-  visibility: {
-    type: String,
-    enum: ['public', 'private'],
-    default: 'private'
-  },
+  id: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  level: { type: String, default: 'general' },
+  category: { type: String, default: 'General' },
+  image: { type: String, default: '' },
+  authorId: { type: String, required: true },
+  authorEmail: { type: String, required: true },
+  authorName: { type: String, required: true },
+  isOfficial: { type: Boolean, default: false },
   questions: [questionSchema]
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
 const Quiz = mongoose.model('Quiz', quizSchema);
 

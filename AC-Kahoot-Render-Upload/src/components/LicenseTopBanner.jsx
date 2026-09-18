@@ -53,11 +53,25 @@ export default function LicenseTopBanner({
   }, []);
 
   const [botConfig, setBotConfig] = useState(null);
+  const [expiryDays, setExpiryDays] = useState(null);
+
+  useEffect(() => {
+    if (currentUser?.licenseExpiryDate) {
+      const expiry = new Date(currentUser.licenseExpiryDate);
+      const now = new Date();
+      const diffTime = Math.max(0, expiry - now);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setExpiryDays(diffDays);
+    } else {
+      setExpiryDays(null);
+    }
+  }, [currentUser]);
 
   const isSuperAdmin = currentUser?.role === 'superadmin';
+  const isExpiringSoon = expiryDays !== null && expiryDays <= 5 && !isSuperAdmin;
 
-  // If dismissed by normal user, hide
-  if (dismissed && !isSuperAdmin) return null;
+  // If dismissed by normal user, hide ONLY if it's a promo. Expiry warnings can't be permanently dismissed this way.
+  if (dismissed && !isSuperAdmin && !isExpiringSoon) return null;
 
   // Determine if user is already licensed
   const isLicensed = Boolean(
@@ -67,12 +81,12 @@ export default function LicenseTopBanner({
     currentUser.license.toLowerCase() !== 'trial'
   );
 
-  // If user has Pro/VIP/Paid license -> NEVER show promotional banner
-  if (isLicensed && !isSuperAdmin) return null;
+  // If user has Pro/VIP/Paid license -> NEVER show promotional banner (but DO show expiry warning)
+  if (isLicensed && !isSuperAdmin && !isExpiringSoon) return null;
 
-  // If announcement is explicitly disabled -> hide banner
-  if (announcement && !announcement.enabled && !isSuperAdmin) return null;
-  if (announcement?.showForFreeOnly && isLicensed && !isSuperAdmin) return null;
+  // If announcement is explicitly disabled -> hide banner (unless expiring soon)
+  if (announcement && !announcement.enabled && !isSuperAdmin && !isExpiringSoon) return null;
+  if (announcement?.showForFreeOnly && isLicensed && !isSuperAdmin && !isExpiringSoon) return null;
 
   const handleDismiss = () => {
     sound.playClick();
@@ -97,19 +111,34 @@ export default function LicenseTopBanner({
     }
   };
 
-  const bannerText = lang === 'km' 
+  let bannerText = lang === 'km' 
     ? (announcement?.textKm || '⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។')
     : (announcement?.textEn || '⚡ Improve student outcomes this school year with AC-Kahoot! Pro. Unlimited quizzes & players. Save 20% from $3/mo. Offer ends August 31.');
 
-  const btnText = lang === 'km'
+  let btnText = lang === 'km'
     ? (announcement?.buttonTextKm || 'ទិញឥឡូវនេះ (Buy now)')
     : (announcement?.buttonTextEn || 'Buy now');
 
+  if (isExpiringSoon) {
+    bannerText = lang === 'km'
+      ? `⚠️ គណនី Pro របស់អ្នកនឹងផុតកំណត់ក្នុងរយៈពេល ${expiryDays} ថ្ងៃទៀត! សូមរួសរាន់បន្តសុពលភាព។`
+      : `⚠️ Your Pro license expires in ${expiryDays} days! Please renew soon.`;
+    btnText = lang === 'km' ? 'បន្តសុពលភាពឥឡូវនេះ' : 'Renew Now';
+  }
+
+  const bgClasses = isExpiringSoon 
+    ? "bg-red-600 border-b border-red-500 text-white px-2.5 py-1.5 sm:py-2 transition-all text-xs sm:text-sm font-khmer shadow-lg relative z-50 overflow-hidden"
+    : "banner-flowing border-b border-white/20 text-white px-2.5 py-1.5 sm:py-2 transition-all text-xs sm:text-sm font-khmer shadow-lg relative z-50 overflow-hidden";
+
   return (
-    <div className="banner-flowing border-b border-white/20 text-white px-2.5 py-1.5 sm:py-2 transition-all text-xs sm:text-sm font-khmer shadow-lg relative z-50 overflow-hidden">
+    <div className={bgClasses}>
       {/* Background Glow */}
-      <div className="absolute -left-10 top-0 w-32 h-32 bg-yellow-400/15 rounded-full blur-2xl pointer-events-none" />
-      <div className="absolute right-20 top-0 w-32 h-32 bg-pink-500/15 rounded-full blur-2xl pointer-events-none" />
+      {!isExpiringSoon && (
+        <>
+          <div className="absolute -left-10 top-0 w-32 h-32 bg-yellow-400/15 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute right-20 top-0 w-32 h-32 bg-pink-500/15 rounded-full blur-2xl pointer-events-none" />
+        </>
+      )}
 
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 relative z-10">
         {/* Left Dismiss Button */}
@@ -125,7 +154,7 @@ export default function LicenseTopBanner({
         {/* Center Flowing & Pulsing Banner Content */}
         <div className="flex-1 text-center font-medium flex items-center justify-center flex-wrap gap-x-1.5 gap-y-0.5 px-1">
           <span className="text-white drop-shadow-md leading-tight sm:leading-snug flex items-center gap-1 font-bold text-[11px] sm:text-xs md:text-sm">
-            <span className="inline-block animate-pulse text-yellow-300">⚡</span>
+            {!isExpiringSoon && <span className="inline-block animate-pulse text-yellow-300">⚡</span>}
             <span>{bannerText}</span>
           </span>
         </div>

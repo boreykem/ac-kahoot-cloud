@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import multer from 'multer';
 import mammoth from 'mammoth';
@@ -111,7 +112,75 @@ const seedSuperAdmin = async () => {
 };
 seedSuperAdmin();
 connectDB();
+// Migrate Quizzes from JSON to MongoDB
+const migrateQuizzes = async () => {
+  try {
+    const jsonQuizzes = loadQuizzes();
+    let migratedCount = 0;
+    for (const q of jsonQuizzes) {
+      const exists = await Quiz.findOne({ id: q.id });
+      if (!exists) {
+        // Ensure questions match schema (e.g. correctIndex)
+        const formattedQuestions = (q.questions || []).map(question => ({
+          ...question,
+          correctIndex: question.correctIndex ?? question.correctAnswer ?? 0,
+          options: question.options || question.answers || []
+        }));
+
+        await Quiz.create({
+          id: q.id,
+          title: q.title || 'Untitled',
+          description: q.description || '',
+          level: q.level || 'general',
+          category: q.category || 'General',
+          image: q.image || '',
+          authorId: q.authorId || 'official',
+          authorEmail: q.authorEmail || 'official',
+          authorName: q.authorName || 'AC-Kahoot! Official',
+          isOfficial: q.isOfficial || false,
+          questions: formattedQuestions
+        });
+        migratedCount++;
+      }
+    }
+    if (migratedCount > 0) console.log(`✅ Migrated ${migratedCount} quizzes to MongoDB!`);
+  } catch (error) {
+    console.error('Failed to migrate quizzes:', error);
+  }
+};
+migrateQuizzes();
+
 const httpServer = createServer(app);
+
+const JWT_SECRET = process.env.JWT_SECRET || 'ac-kahoot-super-secret-key-2026';
+
+// JWT Verification Middleware
+export const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(401).json({ success: false, message: 'Missing token' });
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = await getValidatedUser(decoded.id, decoded.email);
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired user' });
+    }
+    next();
+  } catch (err) {
+    return res.status(403).json({ success: false, message: 'Invalid token' });
+  }
+};
+
+// Admin Protection Middleware
+export const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superadmin') {
+    next();
+  } else {
+    return res.status(403).json({ success: false, message: 'Access denied: Admin only' });
+  }
+};
+
 const io = new Server(httpServer, {
   cors: {
     origin: '*',
@@ -329,7 +398,10 @@ app.post('/api/auth/register', async (req, res) => {
   await newUser.save();
   const safeUser = newUser.toObject();
   delete safeUser.password;
-  res.json({ success: true, user: safeUser, message: '🎉 បានចុះឈ្មោះបង្កើតគណនីដោយជោគជ័យ!' });
+  
+  const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, JWT_SECRET, { expiresIn: '7d' });
+
+  res.json({ success: true, user: safeUser, token, message: '🎉 បានចុះឈ្មោះបង្កើតគណនីដោយជោគជ័យ!' });
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -354,24 +426,20 @@ app.post('/api/auth/login', async (req, res) => {
 
   const safeUser = user.toObject();
   delete safeUser.password;
-  res.json({ success: true, user: safeUser });
+  
+  const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, JWT_SECRET, { expiresIn: '7d' });
+
+  res.json({ success: true, user: safeUser, token });
 });
 
-// Get Current User Profile (Fresh fetch)
-app.get('/api/auth/me', async (req, res) => {
-  const userId = req.headers['x-user-id'];
-  const userEmail = req.headers['x-user-email'];
-  
-  if (!userId || !userEmail) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
-  }
-
-  const user = await getValidatedUser(userId, userEmail);
-  if (!user) {
+// Get Current User Profile (Fresh fetch) - Protected by JWT
+app.get('/api/auth/me', verifyToken, async (req, res) => {
+  // req.user is populated by verifyToken
+  if (!req.user) {
     return res.status(404).json({ success: false, message: 'User not found' });
   }
 
-  const safeUser = user.toObject();
+  const safeUser = req.user.toObject();
   delete safeUser.password;
   res.json({ success: true, user: safeUser });
 });
@@ -520,7 +588,7 @@ app.post('/api/auth/verify-reset-otp', (req, res) => {
 });
 
 // Admin Reset Password for any teacher
-app.post('/api/admin/users/:id/reset-password', async (req, res) => {
+app.post('/api/admin/users/:id/reset-password', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { newPassword } = req.body;
   if (!newPassword) return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
@@ -533,9 +601,9 @@ app.post('/api/admin/users/:id/reset-password', async (req, res) => {
 });
 
 // Master Admin Endpoints
-app.get('/api/admin/stats', (req, res) => {
-  const users = loadUsers();
-  const quizzes = loadQuizzes();
+app.get('/api/admin/stats', verifyToken, isAdmin, async (req, res) => {
+  const users = await User.find({}).lean();
+  const quizzes = loadQuizzes(); // Will be replaced by MongoDB soon
   const totalQuestions = quizzes.reduce((acc, q) => acc + (q.questions?.length || 0), 0);
   const activeRooms = rooms.size;
   const proLicenses = users.filter(u => u.license && (u.license.includes('pro') || u.license.includes('founder'))).length;
@@ -555,7 +623,7 @@ app.get('/api/admin/stats', (req, res) => {
   });
 });
 
-app.get('/api/admin/users', async (req, res) => {
+app.get('/api/admin/users', verifyToken, isAdmin, async (req, res) => {
   const users = await User.find({}, '-password');
   let hasChanges = false;
   
@@ -575,7 +643,7 @@ app.get('/api/admin/users', async (req, res) => {
   res.json({ success: true, users: updatedUsers });
 });
 
-app.post('/api/admin/users/:id/license', async (req, res) => {
+app.post('/api/admin/users/:id/license', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { license } = req.body;
   const user = await User.findOne({ id: id });
@@ -595,7 +663,7 @@ app.post('/api/admin/users/:id/license', async (req, res) => {
   res.json({ success: true, user });
 });
 
-app.delete('/api/admin/users/:id', async (req, res) => {
+app.delete('/api/admin/users/:id', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const target = await User.findOne({ id: id });
   if (target && target.role === 'superadmin') {
@@ -703,16 +771,9 @@ app.get('/api/announcement', async (req, res) => {
 });
 
 // Super Admin: Update announcement & pricing broadcast
-app.post('/api/admin/announcement', (req, res) => {
+app.post('/api/admin/announcement', verifyToken, isAdmin, (req, res) => {
   const { enabled, showForFreeOnly, textKm, textEn, buttonTextKm, buttonTextEn, buttonLink, adminId } = req.body;
-  const users = loadUsers();
-  
-  if (adminId) {
-    const admin = users.find(u => u.id === adminId);
-    if (!admin || admin.role !== 'superadmin') {
-      return res.status(403).json({ success: false, message: 'សិទ្ធិអនុញ្ញាតសម្រាប់តែ Master Admin ប៉ុណ្ណោះ!' });
-    }
-  }
+  // Note: we can remove the manual adminId check now because verifyToken and isAdmin handle it.
 
   const current = loadAnnouncement();
   const updated = {
@@ -833,14 +894,14 @@ app.post('/api/license/deactivate-hwid', (req, res) => {
 });
 
 // Admin: Get all license keys & active license
-app.get('/api/admin/licenses', (req, res) => {
+app.get('/api/admin/licenses', verifyToken, isAdmin, (req, res) => {
   const licenses = loadLicenses();
   const machineLicense = loadActiveLicense();
   res.json({ licenses, machineLicense, currentEmail: getHardwareFingerprint() });
 });
 
 // Admin: Generate new cryptographic or standard license keys
-app.post('/api/admin/licenses/generate', (req, res) => {
+app.post('/api/admin/licenses/generate', verifyToken, isAdmin, (req, res) => {
   const { type = 'pro_lifetime', clientNote = '', count = 1, targetHwid = '' } = req.body;
   const licenses = loadLicenses();
   const createdKeys = [];
@@ -891,7 +952,7 @@ app.post('/api/admin/licenses/generate', (req, res) => {
 });
 
 // Admin: Delete/Revoke license key
-app.delete('/api/admin/licenses/:id', (req, res) => {
+app.delete('/api/admin/licenses/:id', verifyToken, isAdmin, (req, res) => {
   const { id } = req.params;
   let licenses = loadLicenses();
   licenses = licenses.filter(l => l.id !== id && l.key !== id);
@@ -963,7 +1024,7 @@ app.post('/api/license/activate', async (req, res) => {
 });
 
 // Admin: Reset / Unlock teacher's Device Binding (Transfer PC)
-app.post('/api/admin/users/:id/reset-device', async (req, res) => {
+app.post('/api/admin/users/:id/reset-device', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const user = await User.findOne({ id: id });
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -994,7 +1055,7 @@ async function getValidatedUser(userId, userEmail) {
 app.get('/api/quizzes', async (req, res) => {
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
-  const allQuizzes = loadQuizzes();
+  const allQuizzes = await Quiz.find({}).lean();
 
   if (userId && userEmail) {
     const user = await getValidatedUser(userId, userEmail);
@@ -1026,16 +1087,15 @@ app.post('/api/quizzes', async (req, res) => {
   const newQuiz = req.body;
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
-  const quizzes = loadQuizzes();
-  const existingIdx = quizzes.findIndex(q => q.id === newQuiz.id);
   
   // Basic Auth Check for POST
   const user = await getValidatedUser(userId, userEmail);
   const isSuperAdmin = user && user.role === 'superadmin';
 
+  let existingQuiz = await Quiz.findOne({ id: newQuiz.id });
+
   // If trying to modify an existing quiz, check ownership
-  if (existingIdx >= 0) {
-    const existingQuiz = quizzes[existingIdx];
+  if (existingQuiz) {
     if (!isSuperAdmin) {
        // Only author can edit
        if (!user || (existingQuiz.authorEmail?.toLowerCase() !== user.email.toLowerCase() && existingQuiz.authorId !== user.id)) {
@@ -1052,12 +1112,12 @@ app.post('/api/quizzes', async (req, res) => {
   }
 
   // Free Tier Quiz Limit: Max 10 Quizzes
-  if (existingIdx === -1 && newQuiz.authorEmail && newQuiz.authorEmail !== 'official') {
+  if (!existingQuiz && newQuiz.authorEmail && newQuiz.authorEmail !== 'official') {
     const machineLicense = loadActiveLicense();
     const isPro = (machineLicense && machineLicense.valid) || (user && user.license && user.license !== 'free');
     if (!isPro) {
-      const userQuizzes = quizzes.filter(q => q.authorEmail?.toLowerCase() === user?.email?.toLowerCase());
-      if (userQuizzes.length >= 10) {
+      const userQuizzesCount = await Quiz.countDocuments({ authorEmail: new RegExp(`^${user.email}$`, 'i') });
+      if (userQuizzesCount >= 10) {
         return res.status(403).json({ 
           success: false, 
           message: 'គណនី Free Trial អាចបង្កើតវិញ្ញាសាផ្ទាល់ខ្លួនបានត្រឹម ១០ វិញ្ញាសាប៉ុណ្ណោះ។ សូម Upgrade ទៅកាន់ Pro ដើម្បីបង្កើតវិញ្ញាសាមិនកំណត់!' 
@@ -1066,12 +1126,12 @@ app.post('/api/quizzes', async (req, res) => {
     }
   }
 
-  if (existingIdx >= 0) {
-    quizzes[existingIdx] = newQuiz;
+  if (existingQuiz) {
+    await Quiz.updateOne({ id: newQuiz.id }, newQuiz);
   } else {
-    quizzes.unshift(newQuiz);
+    await Quiz.create(newQuiz);
   }
-  saveQuizzes(quizzes);
+  
   res.json({ success: true, quiz: newQuiz });
 });
 
@@ -1080,13 +1140,11 @@ app.delete('/api/quizzes/:id', async (req, res) => {
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
 
-  let quizzes = loadQuizzes();
-  const existingIdx = quizzes.findIndex(q => q.id === id);
-  if (existingIdx === -1) {
+  const existingQuiz = await Quiz.findOne({ id });
+  if (!existingQuiz) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញវិញ្ញាសានេះទេ!' });
   }
 
-  const existingQuiz = quizzes[existingIdx];
   const user = await getValidatedUser(userId, userEmail);
   const isSuperAdmin = user && user.role === 'superadmin';
 
@@ -1096,8 +1154,7 @@ app.delete('/api/quizzes/:id', async (req, res) => {
     }
   }
 
-  quizzes = quizzes.filter(q => q.id !== id);
-  saveQuizzes(quizzes);
+  await Quiz.deleteOne({ id });
   res.json({ success: true });
 });
 
