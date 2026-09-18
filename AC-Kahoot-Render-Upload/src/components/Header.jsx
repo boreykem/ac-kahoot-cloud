@@ -127,7 +127,7 @@ export default function Header({
                     title={lang === 'km' ? "ចាកចេញពីគណនី (Logout)" : "Logout"}
                     className="text-gray-300 hover:text-red-400 hover:bg-white/15 p-1 rounded-lg transition-all text-xs flex items-center justify-center font-bold"
                   >
-                    🚪
+                    ❌
                   </button>
                 </div>
               </div>
