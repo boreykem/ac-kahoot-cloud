@@ -650,17 +650,24 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                                     👑 Founder Unlimited
                                   </span>
                                 ) : (
-                                  <select
-                                    value={u.license || 'free'}
-                                    onChange={(e) => handleUpdateLicense(u.id, e.target.value)}
-                                    className="bg-black/60 border border-purple-400/40 text-yellow-300 rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none"
-                                  >
-                                    <option value="free">⚪ ធម្មតា (Free Tier)</option>
-                                    <option value="PRO_LIFETIME">👑 Pro Lifetime (ប្រើមួយជីវិត)</option>
-                                    <option value="VIP_SCHOOL">🏫 VIP School Lifetime (សាលារៀន)</option>
-                                    <option value="pro_annual">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
-                                    <option value="pro_monthly">⏳ Pro Monthly (ប្រចាំខែ)</option>
-                                  </select>
+                                  <div className="flex flex-col gap-1.5 items-start">
+                                    <select
+                                      value={u.license || 'free'}
+                                      onChange={(e) => handleUpdateLicense(u.id, e.target.value)}
+                                      className="bg-black/60 border border-purple-400/40 text-yellow-300 rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none"
+                                    >
+                                      <option value="free">⚪ ធម្មតា (Free Tier)</option>
+                                      <option value="PRO_LIFETIME">👑 Pro Lifetime (ប្រើមួយជីវិត)</option>
+                                      <option value="VIP_SCHOOL">🏫 VIP School Lifetime (សាលារៀន)</option>
+                                      <option value="pro_annual">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
+                                      <option value="pro_monthly">⏳ Pro Monthly (ប្រចាំខែ)</option>
+                                    </select>
+                                    {u.licenseExpiryDate && (
+                                      <span className="text-[10px] text-amber-400 font-medium bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-500/20 whitespace-nowrap">
+                                        ផុតកំណត់៖ {new Date(u.licenseExpiryDate).toLocaleDateString('en-GB')}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </td>
 

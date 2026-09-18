@@ -172,12 +172,22 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdat
                   <span>អាជ្ញាប័ណ្ណសកម្ម (Active License)</span>
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                  {currentUser.license === 'VIP_SCHOOL' || currentUser.license === 'vip_unlimited' ? '🏫 VIP School Lifetime' : '👑 Pro Lifetime'}
+                  {currentUser.license === 'VIP_SCHOOL' || currentUser.license === 'vip_unlimited' ? '🏫 VIP School Lifetime' : 
+                   currentUser.license === 'pro_annual' ? '📅 Pro Annual (ប្រចាំឆ្នាំ)' :
+                   currentUser.license === 'pro_monthly' ? '⏳ Pro Monthly (ប្រចាំខែ)' :
+                   currentUser.license === 'PRO_LIFETIME' ? '👑 Pro Lifetime (មួយជីវិត)' : '👑 Pro Edition'}
                 </span>
               </div>
-              <p className="text-[11px] text-emerald-200/80">
-                ✅ កុំព្យូទ័រនេះបានចងចាំសោររួចជាស្រេច (មិនបាច់បញ្ចូល Key ម្ដងទៀតឡើយ)!
-              </p>
+              <div className="flex flex-col gap-1 mt-1">
+                <p className="text-[11px] text-emerald-200/80">
+                  ✅ គណនីរបស់អ្នកត្រូវបានដំឡើងកម្រិតទៅជា Pro រួចរាល់!
+                </p>
+                {currentUser.licenseExpiryDate && (
+                  <p className="text-[11px] text-amber-300 font-bold bg-amber-900/30 px-2 py-1 rounded-lg border border-amber-500/30 w-max">
+                    ⏳ ថ្ងៃផុតកំណត់៖ {new Date(currentUser.licenseExpiryDate).toLocaleDateString('en-GB')}
+                  </p>
+                )}
+              </div>
             </div>
           ) : (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-yellow-500/10 via-purple-900/30 to-black/40 border border-yellow-400/30 space-y-2">

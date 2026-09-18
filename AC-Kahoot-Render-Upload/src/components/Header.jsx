@@ -105,7 +105,12 @@ export default function Header({
                       {currentUser.name}
                     </p>
                     <p className="text-[9px] text-purple-200/80 leading-none truncate max-w-[90px] sm:max-w-[120px]">
-                      {currentUser.license === 'VIP_SCHOOL' ? '🏫 VIP School' : (currentUser.license && currentUser.license !== 'free') ? '👑 Pro Edition' : 'Free Trial'}
+                      {currentUser.license === 'VIP_SCHOOL' ? '🏫 VIP School' : 
+                       currentUser.license === 'PRO_LIFETIME' ? '👑 Pro Lifetime' : 
+                       currentUser.license === 'pro_annual' ? '📅 Pro Annual' : 
+                       currentUser.license === 'pro_monthly' ? '⏳ Pro Monthly' : 
+                       currentUser.license === 'founder_unlimited' ? '👑 Founder' : 
+                       'Free Trial'}
                     </p>
                   </div>
                 </button>
