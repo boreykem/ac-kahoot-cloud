@@ -68,18 +68,20 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
   const [showNewAdminPass, setShowNewAdminPass] = useState(false);
   const [showConfirmAdminPass, setShowConfirmAdminPass] = useState(false);
 
+  const getAuthHeaders = () => ({
+    'Content-Type': 'application/json',
+    ...(currentUser?.token ? { 'Authorization': `Bearer ${currentUser.token}` } : {})
+  });
+
   useEffect(() => {
     if (isOpen) {
       fetchAdminData();
     }
-  }, [isOpen]);
-  const authHeaders = {
-    'Content-Type': 'application/json',
-    ...(currentUser?.token ? { 'Authorization': `Bearer ${currentUser.token}` } : {})
-  };
+  }, [isOpen, currentUser]);
 
   const fetchAdminData = async () => {
     setLoading(true);
+    const authHeaders = getAuthHeaders();
     try {
       const [statsRes, usersRes, licRes, annRes, botRes] = await Promise.all([
         fetch('/api/admin/stats', { headers: authHeaders }),
@@ -88,6 +90,11 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
         fetch('/api/announcement'),
         fetch('/api/admin/bot-pricing', { headers: authHeaders })
       ]);
+
+      if (!statsRes.ok || !usersRes.ok) {
+        console.error('Admin API failed. Status:', statsRes.status, usersRes.status);
+      }
+
       const statsData = await statsRes.json();
       const usersData = await usersRes.json();
       const licData = await licRes.json();
@@ -96,6 +103,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
       if (statsData.success) setStats(statsData.stats);
       if (usersData.success) setUsers(usersData.users);
+      else console.warn('Users fetch failed:', usersData);
       if (Array.isArray(licData)) setLicenses(licData);
       if (annData.success && annData.announcement) setAnnouncementData(annData.announcement);
       if (botData && botData.success && botData.pricing) setBotPricing(botData.pricing);
@@ -113,7 +121,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/bot-pricing', {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify(botPricing)
       });
       const data = await res.json();
@@ -137,7 +145,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/bot/test-connection', {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({ botToken: botPricing.botToken })
       });
       const data = await res.json();
@@ -165,7 +173,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/bot/send-test', {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({ adminChatId: botPricing.adminChatId })
       });
       const data = await res.json();
@@ -189,7 +197,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/licenses/generate', {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           type: licenseTypeToGen,
           clientNote: licenseClientNote,
@@ -216,7 +224,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/licenses/${licId}`, { 
         method: 'DELETE',
-        headers: authHeaders
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (data.success) {
@@ -247,7 +255,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/users/${userId}/reset-device`, { 
         method: 'POST',
-        headers: authHeaders
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (data.success) {
@@ -265,7 +273,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/users/${userId}/license`, {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({ license: newLicense })
       });
       const data = await res.json();
@@ -286,7 +294,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/users/${userId}`, { 
         method: 'DELETE',
-        headers: authHeaders
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (data.success) {
@@ -318,7 +326,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser?.id || 'owner_master',
           currentPassword: currentAdminPass,
@@ -353,7 +361,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch(`/api/admin/users/${resetTargetUser.id}/reset-password`, {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({ newPassword: newTargetPassword })
       });
       const data = await res.json();
@@ -379,7 +387,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     try {
       const res = await fetch('/api/admin/announcement', {
         method: 'POST',
-        headers: authHeaders,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           ...announcementData,
           adminId: currentUser?.id
