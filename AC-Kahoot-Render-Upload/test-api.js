@@ -17,13 +17,22 @@ async function run() {
   const usersRes = await fetch(`${BASE_URL}/api/admin/users`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
-  
   const usersData = await usersRes.json();
   console.log("Admin Users Response:", usersData.success, "Count:", usersData.users ? usersData.users.length : 0);
   
-  if (!usersData.success) {
-    console.log("Error message:", usersData.message);
-  }
+  console.log("Fetching admin stats...");
+  const statsRes = await fetch(`${BASE_URL}/api/admin/stats`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const statsData = await statsRes.json();
+  console.log("Admin Stats Response:", statsData);
+  
+  console.log("Fetching admin licenses...");
+  const licRes = await fetch(`${BASE_URL}/api/admin/licenses`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const licData = await licRes.json();
+  console.log("Admin Lic Response:", Array.isArray(licData) ? licData.length : licData);
   
   process.exit(0);
 }
