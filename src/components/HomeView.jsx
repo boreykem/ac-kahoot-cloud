@@ -322,109 +322,109 @@ export default function HomeView({
             </p>
           </div>
 
-          {/* Controls: Search Box + Sort Dropdown */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            {/* Search Box */}
-            <div className="relative min-w-[200px] sm:min-w-[260px] flex-1">
-              <Search className="w-4 h-4 text-purple-300 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={t.searchPlaceholder}
-                className="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-8 py-2 text-xs sm:text-sm text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* Sort Selector Dropdown */}
-            <div className="relative shrink-0" ref={sortMenuRef}>
+          {/* Search Box */}
+          <div className="relative min-w-[240px] sm:min-w-[320px]">
+            <Search className="w-4 h-4 text-purple-300 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t.searchPlaceholder}
+              className="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-8 py-2.5 text-xs sm:text-sm text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all shadow-inner"
+            />
+            {searchTerm && (
               <button
                 type="button"
-                onClick={() => { sound.playClick(); setIsSortMenuOpen(!isSortMenuOpen); }}
-                className="flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/30 hover:border-purple-400/60 text-white text-xs sm:text-sm font-semibold transition-all shadow-md active:scale-95 whitespace-nowrap"
-                title={lang === 'km' ? 'តម្រៀបវិញ្ញាសា' : 'Sort quizzes'}
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs p-1"
               >
-                <ArrowUpDown className="w-4 h-4 text-yellow-300" />
-                <span>{lang === 'km' ? currentSortOption.labelKm : currentSortOption.labelEn}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-purple-300 transition-transform duration-200 ${isSortMenuOpen ? 'rotate-180' : ''}`} />
+                ✕
               </button>
-
-              {isSortMenuOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-[#1b0634] border border-purple-400/40 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-scale-in">
-                  <div className="px-3 py-1.5 border-b border-white/10 mb-1 flex items-center justify-between text-[11px] font-bold text-purple-300">
-                    <span className="flex items-center gap-1.5">
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-yellow-400" />
-                      <span>{lang === 'km' ? 'ជម្រើសតម្រៀប (Sort Options)' : 'Sort Options'}</span>
-                    </span>
-                    <span className="text-[10px] text-yellow-300 bg-yellow-400/10 px-2 py-0.5 rounded-full border border-yellow-400/20">
-                      {sortedQuizzes.length} {lang === 'km' ? 'វិញ្ញាសា' : 'quizzes'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1">
-                    {sortOptions.map((opt) => {
-                      const isSelected = sortBy === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => {
-                            sound.playClick();
-                            setSortBy(opt.id);
-                            try { localStorage.setItem('quiz_sort_order', opt.id); } catch (_) {}
-                            setIsSortMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-left transition-all ${
-                            isSelected 
-                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md border border-purple-300/40' 
-                              : 'text-gray-300 hover:text-white hover:bg-white/10'
-                          }`}
-                        >
-                          <div>
-                            <p className="flex items-center gap-1">{lang === 'km' ? opt.labelKm : opt.labelEn}</p>
-                            <p className="text-[10px] opacity-75 font-normal">{lang === 'km' ? opt.descKm : opt.descEn}</p>
-                          </div>
-                          {isSelected && <Check className="w-4 h-4 text-yellow-300 shrink-0 ml-2" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Level Quick Badges */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {[
-            { id: 'all', label: lang === 'km' ? 'ទាំងអស់ (All)' : '🌐 All Levels' },
-            { id: 'university', label: lang === 'km' ? '🏛️ សាកលវិទ្យាល័យ / ឧត្តមសិក្សា' : '🏛️ University / Higher Ed' },
-            { id: 'highschool', label: lang === 'km' ? '🎓 វិទ្យាល័យ (បាក់ឌុប)' : '🎓 High School' },
-            { id: 'secondary', label: lang === 'km' ? '🧑‍🎓 មធ្យមសិក្សា' : '🧑‍🎓 Secondary School' },
-            { id: 'primary', label: lang === 'km' ? '👦 បឋមសិក្សា' : '👦 Primary School' },
-          ].map(lvl => (
+        {/* Level Quick Badges on Left + Sort Button on Right (User Requested Row) */}
+        <div className="flex items-center justify-between gap-3 overflow-visible pb-1">
+          {/* Category Badges (scrollable horizontally if needed) */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 flex-1 min-w-0">
+            {[
+              { id: 'all', label: lang === 'km' ? 'ទាំងអស់ (All)' : '🌐 All Levels' },
+              { id: 'university', label: lang === 'km' ? '🏛️ សាកលវិទ្យាល័យ / ឧត្តមសិក្សា' : '🏛️ University / Higher Ed' },
+              { id: 'highschool', label: lang === 'km' ? '🎓 វិទ្យាល័យ (បាក់ឌុប)' : '🎓 High School' },
+              { id: 'secondary', label: lang === 'km' ? '🧑‍🎓 មធ្យមសិក្សា' : '🧑‍🎓 Secondary School' },
+              { id: 'primary', label: lang === 'km' ? '👦 បឋមសិក្សា' : '👦 Primary School' },
+            ].map(lvl => (
+              <button
+                key={lvl.id}
+                onClick={() => { sound.playClick(); setActiveLevel(lvl.id); }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeLevel === lvl.id
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-950/50'
+                    : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
+                }`}
+              >
+                {lvl.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort Selector Dropdown placed directly here on the right */}
+          <div className="relative shrink-0" ref={sortMenuRef}>
             <button
-              key={lvl.id}
-              onClick={() => { sound.playClick(); setActiveLevel(lvl.id); }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                activeLevel === lvl.id
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-950/50'
-                  : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
-              }`}
+              type="button"
+              onClick={() => { sound.playClick(); setIsSortMenuOpen(!isSortMenuOpen); }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-400/40 hover:border-yellow-400/60 text-white text-xs font-bold transition-all shadow-md active:scale-95 whitespace-nowrap"
+              title={lang === 'km' ? 'តម្រៀបវិញ្ញាសា' : 'Sort quizzes'}
             >
-              {lvl.label}
+              <ArrowUpDown className="w-3.5 h-3.5 text-yellow-300" />
+              <span>{lang === 'km' ? currentSortOption.labelKm : currentSortOption.labelEn}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-purple-300 transition-transform duration-200 ${isSortMenuOpen ? 'rotate-180' : ''}`} />
             </button>
-          ))}
+
+            {isSortMenuOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-[#1b0634] border border-purple-400/40 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-scale-in">
+                <div className="px-3 py-1.5 border-b border-white/10 mb-1 flex items-center justify-between text-[11px] font-bold text-purple-300">
+                  <span className="flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>{lang === 'km' ? 'ជម្រើសតម្រៀប (Sort Options)' : 'Sort Options'}</span>
+                  </span>
+                  <span className="text-[10px] text-yellow-300 bg-yellow-400/10 px-2 py-0.5 rounded-full border border-yellow-400/20">
+                    {sortedQuizzes.length} {lang === 'km' ? 'វិញ្ញាសា' : 'quizzes'}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  {sortOptions.map((opt) => {
+                    const isSelected = sortBy === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          sound.playClick();
+                          setSortBy(opt.id);
+                          try { localStorage.setItem('quiz_sort_order', opt.id); } catch (_) {}
+                          setIsSortMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-left transition-all ${
+                          isSelected 
+                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md border border-purple-300/40' 
+                            : 'text-gray-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <div>
+                          <p className="flex items-center gap-1">{lang === 'km' ? opt.labelKm : opt.labelEn}</p>
+                          <p className="text-[10px] opacity-75 font-normal">{lang === 'km' ? opt.descKm : opt.descEn}</p>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-yellow-300 shrink-0 ml-2" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
