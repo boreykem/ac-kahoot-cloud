@@ -1244,7 +1244,7 @@ async function getValidatedUser(userId, userEmail) {
 app.get('/api/quizzes', async (req, res) => {
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
-  const allQuizzes = await Quiz.find({}).lean();
+  const allQuizzes = await Quiz.find({}).sort({ createdAt: -1, _id: -1 }).lean();
 
   if (userId && userEmail) {
     const user = await getValidatedUser(userId, userEmail);

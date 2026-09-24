@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { Play, Edit3, Trash2, Sparkles, BookOpen, Clock, Award, Users, Search, Plus, School, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Play, Edit3, Trash2, Sparkles, BookOpen, Clock, Award, Users, 
+  Search, Plus, School, GraduationCap, ArrowUpDown, Check, ChevronDown, SlidersHorizontal 
+} from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 import { translations } from '../utils/i18n';
 
@@ -18,7 +21,33 @@ export default function HomeView({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [libraryTab, setLibraryTab] = useState(currentUser ? 'my' : 'public');
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem('quiz_sort_order') || 'newest');
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef(null);
+
   const t = translations[lang] || translations.km;
+
+  // Close sort menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setIsSortMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const sortOptions = [
+    { id: 'newest', labelKm: '🌟 ថ្មីបំផុត (Newest)', labelEn: '🌟 Newest First', descKm: 'វិញ្ញាសាទើបបង្កើត ឬ Generate ថ្មីៗ', descEn: 'Recently created or generated' },
+    { id: 'oldest', labelKm: '⏳ ចាស់បំផុត (Oldest)', labelEn: '⏳ Oldest First', descKm: 'វិញ្ញាសាដំបូងៗ', descEn: 'Earliest created quizzes' },
+    { id: 'title_asc', labelKm: '🔤 តាមឈ្មោះ (A ➔ Z)', labelEn: '🔤 Title (A ➔ Z)', descKm: 'តម្រៀបតាមលំដាប់អក្ខរក្រម', descEn: 'Alphabetical A to Z' },
+    { id: 'title_desc', labelKm: '🔤 តាមឈ្មោះ (Z ➔ A)', labelEn: '🔤 Title (Z ➔ A)', descKm: 'តម្រៀបបញ្ច្រាសអក្ខរក្រម', descEn: 'Alphabetical Z to A' },
+    { id: 'questions_desc', labelKm: '📝 សំណួរច្រើនបំផុត', labelEn: '📝 Most Questions', descKm: 'វិញ្ញាសាដែលមានចំនួនសំណួរច្រើន', descEn: 'Highest number of questions' },
+    { id: 'questions_asc', labelKm: '📝 សំណួរតិចបំផុត', labelEn: '📝 Fewest Questions', descKm: 'វិញ្ញាសាដែលមានសំណួរតិច', descEn: 'Lowest number of questions' },
+  ];
+
+  const currentSortOption = sortOptions.find(o => o.id === sortBy) || sortOptions[0];
 
   const isSuperAdmin = currentUser?.role === 'superadmin';
 
@@ -74,6 +103,63 @@ export default function HomeView({
     } else {
       return q.isOfficial || !q.authorEmail || q.authorEmail === 'official';
     }
+  });
+
+  const getQuizTimestamp = (q) => {
+    if (q.createdAt) {
+      const t = new Date(q.createdAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (q.updatedAt) {
+      const t = new Date(q.updatedAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    const match = String(q.id || '').match(/(\d{10,14})/);
+    if (match) {
+      const parsed = parseInt(match[1], 10);
+      if (!isNaN(parsed) && parsed > 1000000000) return parsed;
+    }
+    if (q._id && typeof q._id === 'string' && q._id.length === 24) {
+      try {
+        const ts = parseInt(q._id.substring(0, 8), 16) * 1000;
+        if (!isNaN(ts) && ts > 0) return ts;
+      } catch (_) {}
+    }
+    return 0;
+  };
+
+  const isRecentQuiz = (q) => {
+    const ts = getQuizTimestamp(q);
+    if (!ts) return false;
+    return (Date.now() - ts) < 48 * 60 * 60 * 1000; // Created within last 48 hours
+  };
+
+  const sortedQuizzes = [...filteredQuizzes].sort((a, b) => {
+    if (sortBy === 'newest') {
+      const timeA = getQuizTimestamp(a);
+      const timeB = getQuizTimestamp(b);
+      if (timeA !== timeB && timeA > 0 && timeB > 0) return timeB - timeA;
+      return quizzes.indexOf(b) - quizzes.indexOf(a);
+    }
+    if (sortBy === 'oldest') {
+      const timeA = getQuizTimestamp(a);
+      const timeB = getQuizTimestamp(b);
+      if (timeA !== timeB && timeA > 0 && timeB > 0) return timeA - timeB;
+      return quizzes.indexOf(a) - quizzes.indexOf(b);
+    }
+    if (sortBy === 'title_asc') {
+      return (a.title || '').localeCompare(b.title || '', lang === 'km' ? 'km' : 'en');
+    }
+    if (sortBy === 'title_desc') {
+      return (b.title || '').localeCompare(a.title || '', lang === 'km' ? 'km' : 'en');
+    }
+    if (sortBy === 'questions_desc') {
+      return (b.questions?.length || 0) - (a.questions?.length || 0);
+    }
+    if (sortBy === 'questions_asc') {
+      return (a.questions?.length || 0) - (b.questions?.length || 0);
+    }
+    return 0;
   });
 
   const myQuizzesCount = currentUser 
@@ -236,16 +322,85 @@ export default function HomeView({
             </p>
           </div>
 
-          {/* Search Box */}
-          <div className="relative min-w-[260px]">
-            <Search className="w-4 h-4 text-purple-300 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t.searchPlaceholder}
-              className="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
-            />
+          {/* Controls: Search Box + Sort Dropdown */}
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {/* Search Box */}
+            <div className="relative min-w-[200px] sm:min-w-[260px] flex-1">
+              <Search className="w-4 h-4 text-purple-300 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t.searchPlaceholder}
+                className="w-full bg-black/40 border border-white/15 rounded-xl pl-10 pr-8 py-2 text-xs sm:text-sm text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Sort Selector Dropdown */}
+            <div className="relative shrink-0" ref={sortMenuRef}>
+              <button
+                type="button"
+                onClick={() => { sound.playClick(); setIsSortMenuOpen(!isSortMenuOpen); }}
+                className="flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/30 hover:border-purple-400/60 text-white text-xs sm:text-sm font-semibold transition-all shadow-md active:scale-95 whitespace-nowrap"
+                title={lang === 'km' ? 'តម្រៀបវិញ្ញាសា' : 'Sort quizzes'}
+              >
+                <ArrowUpDown className="w-4 h-4 text-yellow-300" />
+                <span>{lang === 'km' ? currentSortOption.labelKm : currentSortOption.labelEn}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-purple-300 transition-transform duration-200 ${isSortMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isSortMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-[#1b0634] border border-purple-400/40 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-scale-in">
+                  <div className="px-3 py-1.5 border-b border-white/10 mb-1 flex items-center justify-between text-[11px] font-bold text-purple-300">
+                    <span className="flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-yellow-400" />
+                      <span>{lang === 'km' ? 'ជម្រើសតម្រៀប (Sort Options)' : 'Sort Options'}</span>
+                    </span>
+                    <span className="text-[10px] text-yellow-300 bg-yellow-400/10 px-2 py-0.5 rounded-full border border-yellow-400/20">
+                      {sortedQuizzes.length} {lang === 'km' ? 'វិញ្ញាសា' : 'quizzes'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    {sortOptions.map((opt) => {
+                      const isSelected = sortBy === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            sound.playClick();
+                            setSortBy(opt.id);
+                            try { localStorage.setItem('quiz_sort_order', opt.id); } catch (_) {}
+                            setIsSortMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-left transition-all ${
+                            isSelected 
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md border border-purple-300/40' 
+                              : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          <div>
+                            <p className="flex items-center gap-1">{lang === 'km' ? opt.labelKm : opt.labelEn}</p>
+                            <p className="text-[10px] opacity-75 font-normal">{lang === 'km' ? opt.descKm : opt.descEn}</p>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-yellow-300 shrink-0 ml-2" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -274,7 +429,7 @@ export default function HomeView({
       </div>
 
       {/* Quizzes Grid */}
-      {filteredQuizzes.length === 0 ? (
+      {sortedQuizzes.length === 0 ? (
         <div className="text-center py-16 glass-card rounded-3xl border border-dashed border-white/20 p-8 space-y-4">
           <BookOpen className="w-12 h-12 text-purple-400 mx-auto opacity-50" />
           <h3 className="text-lg font-bold text-white">
@@ -297,7 +452,7 @@ export default function HomeView({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredQuizzes.map((quiz) => {
+          {sortedQuizzes.map((quiz) => {
             const isOwner = currentUser && (quiz.authorEmail === currentUser.email || quiz.authorId === currentUser.id);
             const canManage = isSuperAdmin || isOwner;
 
@@ -321,9 +476,16 @@ export default function HomeView({
                     <span>{quiz.questions?.length || 0} {lang === 'km' ? 'សំណួរ' : 'Questions'}</span>
                   </div>
 
-                  {/* Author / Official Tag */}
-                  <div className="absolute top-3 left-3 bg-black/85 px-2.5 py-1 rounded-full text-[10px] font-bold text-purple-200 border border-white/20 shadow-md">
-                    {quiz.isOfficial ? '👑 ផ្លូវការ (Official)' : `👤 ${quiz.authorName || 'Teacher'}`}
+                  {/* Author / Official Tag & Recent Badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap max-w-[70%]">
+                    <span className="bg-black/85 px-2.5 py-1 rounded-full text-[10px] font-bold text-purple-200 border border-white/20 shadow-md">
+                      {quiz.isOfficial ? '👑 ផ្លូវការ (Official)' : `👤 ${quiz.authorName || 'Teacher'}`}
+                    </span>
+                    {isRecentQuiz(quiz) && (
+                      <span className="bg-gradient-to-r from-emerald-500 to-teal-400 text-black px-2 py-0.5 rounded-full text-[10px] font-black shadow-md border border-emerald-300/40 animate-pulse">
+                        ✨ {lang === 'km' ? 'ថ្មី' : 'NEW'}
+                      </span>
+                    )}
                   </div>
 
                   {/* Level Tag */}
