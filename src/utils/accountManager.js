@@ -42,7 +42,8 @@ export function saveAccount(user) {
       license: user.license || 'free',
       aiGenerationsCount: user.aiGenerationsCount || 0,
       role: user.role || 'user',
-      lastActive: Date.now()
+      lastActive: Date.now(),
+      token: user.token || (existingIndex >= 0 ? accounts[existingIndex]?.token : undefined)
     };
 
     if (existingIndex >= 0) {

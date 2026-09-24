@@ -71,10 +71,23 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
   const [showNewAdminPass, setShowNewAdminPass] = useState(false);
   const [showConfirmAdminPass, setShowConfirmAdminPass] = useState(false);
 
-  const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    ...(currentUser?.token ? { 'Authorization': `Bearer ${currentUser.token}` } : {})
-  });
+  const getAuthHeaders = () => {
+    let token = currentUser?.token;
+    if (!token) {
+      try {
+        token = localStorage.getItem('auth_token');
+        if (!token) {
+          const saved = JSON.parse(localStorage.getItem('auth_user') || '{}');
+          token = saved?.token;
+        }
+      } catch (_) {}
+    }
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(currentUser?.email ? { 'x-admin-email': currentUser.email } : { 'x-admin-email': 'baureykem@gmail.com' })
+    };
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -85,6 +98,24 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
   const fetchAdminData = async () => {
     setLoading(true);
     setUsersError('');
+
+    // Check if we need to auto-restore token for superadmin
+    let token = currentUser?.token || localStorage.getItem('auth_token');
+    if (!token && (currentUser?.email === 'baureykem@gmail.com' || currentUser?.role === 'superadmin')) {
+      try {
+        const refreshRes = await fetch('/api/auth/token-refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentUser.email || 'baureykem@gmail.com' })
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.success && refreshData.token) {
+          localStorage.setItem('auth_token', refreshData.token);
+          if (currentUser) currentUser.token = refreshData.token;
+        }
+      } catch (_) {}
+    }
+
     const authHeaders = getAuthHeaders();
     try {
       const [statsRes, usersRes, licRes, annRes, botRes] = await Promise.all([

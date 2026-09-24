@@ -126,7 +126,11 @@ export default function AuthModal({
       const data = await res.json();
       if (data.success && data.user) {
         sound.playCorrect();
-        if (onLoginSuccess) onLoginSuccess(data.user);
+        const userWithToken = { ...data.user, token: data.token || data.user.token };
+        if (data.token) {
+          try { localStorage.setItem('auth_token', data.token); } catch (_) {}
+        }
+        if (onLoginSuccess) onLoginSuccess(userWithToken);
         onClose();
       } else {
         setError(data.message || (lang === 'km' ? 'ការចូលគណនីបរាជ័យ' : 'Login failed'));
@@ -167,7 +171,11 @@ export default function AuthModal({
         if (regLicenseKey.trim()) {
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }
-        if (onLoginSuccess) onLoginSuccess(data.user);
+        const userWithToken = { ...data.user, token: data.token || data.user.token };
+        if (data.token) {
+          try { localStorage.setItem('auth_token', data.token); } catch (_) {}
+        }
+        if (onLoginSuccess) onLoginSuccess(userWithToken);
         onClose();
       } else {
         setError(data.message || (lang === 'km' ? 'ការចុះឈ្មោះបរាជ័យ' : 'Registration failed'));
