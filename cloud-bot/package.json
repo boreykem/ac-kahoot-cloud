@@ -1,0 +1,17 @@
+{
+  "name": "ac-kahoot-telegram-cloud-bot",
+  "version": "1.0.0",
+  "description": "24/7 Standalone Cloud Telegram Bot & Auto-Keygen for AC-Kahoot",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": [
+    "telegram-bot",
+    "keygen",
+    "ac-kahoot"
+  ],
+  "author": "KEM BOREY",
+  "license": "MIT"
+}

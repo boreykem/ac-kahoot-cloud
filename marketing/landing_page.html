@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AC-Kahoot! - វេទិកាសំណួរ-ចម្លើយអន្តរកម្មកម្ពុជា ជាមួយ Gemini AI</title>
+  <meta name="description" content="AC-Kahoot! កម្មវិធីសំណួរ-ចម្លើយអន្តរកម្មស្ទីល Kahoot ដំណើរការលើ Local Network គ្មាន Internet បង្កើតសំណួរស្វ័យប្រវត្តដោយ Gemini AI" />
+  
+  <!-- Google Fonts Kantumruy Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #ec4899;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --bg-dark: #0f172a;
+      --bg-card: rgba(30, 41, 59, 0.7);
+      --border-card: rgba(255, 255, 255, 0.1);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Kantumruy Pro', 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Background glow */
+    .bg-glow {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15), transparent 60%),
+                  radial-gradient(circle at 80% 50%, rgba(236, 72, 153, 0.12), transparent 50%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header / Nav */
+    header {
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(16px);
+      background: rgba(15, 23, 42, 0.85);
+      border-bottom: 1px solid var(--border-card);
+      z-index: 100;
+      padding: 16px 0;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      border: none;
+      font-size: 1rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(99, 102, 241, 0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid var(--border-card);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .btn-tg {
+      background: linear-gradient(135deg, #0088cc, #00b4d8);
+      color: white;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 6px 16px;
+      border-radius: 999px;
+      color: #a5b4fc;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 780px;
+      margin: 0 auto 36px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+
+    /* Hero Visual Mockup */
+    .mockup-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      max-width: 960px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .mockup-header {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .mockup-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    /* Feature Grid */
+    .section-title {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .section-title h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .section-title p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 80px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 20px;
+      padding: 32px 24px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.2);
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .feature-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Comparison Table */
+    .comparison-section {
+      padding: 60px 0;
+      margin-bottom: 60px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      background: var(--bg-card);
+      border-radius: 20px;
+      border: 1px solid var(--border-card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .check { color: #10b981; font-weight: bold; }
+    .cross { color: #ef4444; font-weight: bold; }
+
+    /* Pricing Section */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 28px;
+      margin-bottom: 80px;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-align: center;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .pricing-card.popular {
+      border: 2px solid #6366f1;
+      box-shadow: 0 0 35px rgba(99, 102, 241, 0.3);
+      transform: scale(1.03);
+    }
+
+    .popular-tag {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      color: white;
+      padding: 4px 16px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .pricing-price {
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: #fff;
+      margin: 16px 0;
+    }
+
+    .pricing-price span {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+
+    .pricing-features {
+      list-style: none;
+      text-align: left;
+      margin: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* FAQ */
+    .faq-grid {
+      max-width: 800px;
+      margin: 0 auto 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      padding: 20px 24px;
+      cursor: pointer;
+    }
+
+    .faq-question {
+      font-weight: 700;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faq-answer {
+      color: var(--text-muted);
+      margin-top: 12px;
+      font-size: 0.95rem;
+      display: block;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-card);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .nav-links { display: none; }
+      .pricing-card.popular { transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#" class="logo">
+        <span class="logo-badge">🎯 AC</span>
+        <span>Kahoot!</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">មុខងារពិសេស</a></li>
+        <li><a href="#comparison">ការប្រៀបធៀប</a></li>
+        <li><a href="#pricing">តម្លៃ</a></li>
+        <li><a href="#faq">សំណួរញឹកញាប់</a></li>
+      </ul>
+      <a href="https://t.me/your_telegram_handle" target="_blank" class="btn btn-tg">
+        ✈️ ទាក់ទង Telegram
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero container">
+    <div class="hero-badge">
+      ✨ កម្មវិធីសំណួរ-ចម្លើយអន្តរកម្មកម្រិតខ្ពស់សម្រាប់កម្ពុជា 🇰🇭
+    </div>
+    <h1>ប្ដូរថ្នាក់រៀនរបស់អ្នកឱ្យក្លាយជា<br><span style="color: #818cf8;">វេទិកាល្បែងសិក្សាដ៏រស់រវើក</span></h1>
+    <p>
+      បង្កើតសំណួរស្វ័យប្រវត្តក្នុង ៥ វិនាទីជាមួយ <strong>Gemini AI</strong> និងដំណើរការលេងបានយ៉ាងរលូនទោះបីជា <strong>គ្មានអ៊ីនធឺណិត (Offline LAN)</strong>។ ស័ក្តិសមសម្រាប់គ្រូបង្រៀន សាលារៀន និងក្រុមហ៊ុន!
+    </p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn btn-primary">
+        🚀 ចាប់ផ្តើមសាកល្បងឥតគិតថ្លៃ
+      </a>
+      <a href="#features" class="btn btn-secondary">
+        📖 មើលមុខងារលម្អិត
+      </a>
+    </div>
+
+    <!-- Live Preview Mockup -->
+    <div class="mockup-card">
+      <div class="mockup-header">
+        <div class="mockup-dot dot-red"></div>
+        <div class="mockup-dot dot-yellow"></div>
+        <div class="mockup-dot dot-green"></div>
+        <span style="font-size: 0.8rem; color: #64748b; margin-left: 8px;">AC-Kahoot! Host View & Live Quiz</span>
+      </div>
+      <div style="background: #1e1b4b; border-radius: 16px; padding: 30px; text-align: center; border: 1px solid rgba(99, 102, 241, 0.3);">
+        <div style="font-size: 1.2rem; color: #a5b4fc; margin-bottom: 8px;">🎮 PIN បន្ទប់៖ <strong style="font-size: 1.6rem; color: #fff; letter-spacing: 4px;">889 241</strong></div>
+        <h3 style="font-size: 1.4rem; color: #fff; margin-bottom: 24px;">«តើព្រះរាជាណាចក្រកម្ពុជាទទួលបានឯករាជ្យនៅឆ្នាំណា?»</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 650px; margin: 0 auto;">
+          <div style="background: #ef4444; color: white; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem;">🔴 ▲ ឆ្នាំ ១៩៤៥</div>
+          <div style="background: #3b82f6; color: white; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem;">🔷 ◆ ឆ្នាំ ១៩៥៣ (ចម្លើយត្រឹមត្រូវ)</div>
+          <div style="background: #f59e0b; color: white; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem;">🟡 ● ឆ្នាំ ១៩៦០</div>
+          <div style="background: #10b981; color: white; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem;">🟩 ■ ឆ្នាំ ១៩៧៥</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section id="features" class="container" style="padding: 60px 24px;">
+    <div class="section-title">
+      <h2>មុខងារស្នូលដែលធ្វើឱ្យ AC-Kahoot លេចធ្លោ</h2>
+      <p>រចនាឡើងយ៉ាងពិសេសដើម្បីដោះស្រាយបញ្ហាពិតប្រាកដក្នុងការបង្រៀននៅកម្ពុជា</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>Gemini AI Quiz Generator</h3>
+        <p>គ្រាន់តែ Paste អត្ថបទមេរៀន ឬសៀវភៅពុម្ពខ្មែរ ចូល Gemini AI នឹងបង្កើតសំណួរ ៤ ជម្រើស និងការពន្យល់យ៉ាងត្រឹមត្រូវត្រឹមតែ ៥ វិនាទីប៉ុណ្ណោះ។</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📶</div>
+        <h3>ដំណើរការ Offline (Local WiFi)</h3>
+        <p>សាលាគ្មាន Internet ឬ WiFi ខ្សោយ? មិនបាច់បារម្ភ! គ្រាន់តែបើក Hotspot លើទូរស័ព្ទដៃ ឬរ៉ោតទ័រ សិស្សរាប់រយនាក់អាច Scan QR Code លេងបានរលូន គ្មាន Lag។</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎓</div>
+        <h3>ប្រព័ន្ធ ៤ កម្រិតសិក្សា (MoEYS)</h3>
+        <p>គាំទ្របឋមសិក្សា (រូបភាពគំនូរជីវចល), មធ្យមសិក្សា (Streak Bonus), វិទ្យាល័យ (វិញ្ញាសាបាក់ឌុប + រូបមន្តវិទ្យាសាស្ត្រ), និងសាកលវិទ្យាល័យ (Mazur Peer Instruction)។</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <h3>Podium 3D & Live Sound Effects</h3>
+        <p>វេទិកាផ្ដល់ពានរង្វាន់ 3D ជាមួយចលនាកាំជ្រួច Confetti 🎉 និងសំឡេង Synthesizer បែប Real-time ធ្វើឱ្យបរិយាកាសក្នុងថ្នាក់រំភើបជក់ចិត្ត។</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>សុវត្ថិភាពខ្ពស់ Hardware License</h3>
+        <p>ប្រព័ន្ធការពារកម្មវិធីចាក់សោតាមកូដម៉ាស៊ីន (Hardware ID) ជួយការពារកម្មសិទ្ធិបញ្ញា និងផ្ដល់ទំនុកចិត្តដល់ស្ថាប័នអប់រំ។</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🇰🇭</div>
+        <h3>ពុម្ពអក្សរខ្មែរ Kantumruy Pro</h3>
+        <p>ស្រៈ និងជើងអក្សរខ្មែរបង្ហាញបានត្រឹមត្រូវ ១០០% ទាំងលើទូរស័ព្ទដៃសិស្ស និងផ្ទាំងបញ្ចាំង Projector របស់គ្រូ។</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Section -->
+  <section id="comparison" class="container comparison-section">
+    <div class="section-title">
+      <h2>ប្រៀបធៀប AC-Kahoot និង Kahoot ធម្មតា</h2>
+      <p>ហេតុអ្វីបានជា AC-Kahoot ជាជម្រើសល្អបំផុតសម្រាប់គ្រូ និងសាលារៀននៅកម្ពុជា?</p>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>មុខងារ & ចំណុចសំខាន់</th>
+            <th>Kahoot ធម្មតា</th>
+            <th style="color: #818cf8;">🎯 AC-Kahoot!</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ដំណើរការគ្មានអ៊ីនធឺណិត (Offline LAN / Hotspot)</td>
+            <td class="cross">❌ ត្រូវការ Internet លឿន</td>
+            <td class="check">✅ ដំណើរការបាន ១០០% គ្មាន Internet</td>
+          </tr>
+          <tr>
+            <td>Gemini AI បង្កើតសំណួរជាភាសាខ្មែរ</td>
+            <td class="cross">❌ គិតលុយថ្លៃរាល់ខែ</td>
+            <td class="check">✅ បង្កើតមេរៀនខ្មែរត្រឹម 5 វិនាទី</td>
+          </tr>
+          <tr>
+            <td>គំរូតម្លៃ (Pricing)</td>
+            <td class="cross">❌ $50 - $200+ ក្នុងមួយឆ្នាំ</td>
+            <td class="check">✅ តម្លៃសមរម្យ ទិញដាច់ពេញមួយជីវិត</td>
+          </tr>
+          <tr>
+            <td>ស្របតាមកម្មវិធីក្រសួងអប់រំ MoEYS</td>
+            <td class="cross">❌ ភាសាបរទេស</td>
+            <td class="check">✅ រចនាពិសេសសម្រាប់កម្មវិធីសិក្សាខ្មែរ</td>
+          </tr>
+          <tr>
+            <td>Mazur Peer Instruction (សាកលវិទ្យាល័យ)</td>
+            <td class="cross">❌ មិនមាន</td>
+            <td class="check">✅ គាំទ្រការ Re-poll និងពិភាក្សាជាក្រុម</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="container" style="padding: 60px 24px;">
+    <div class="section-title">
+      <h2>កញ្ចប់តម្លៃសមរម្យបំផុត</h2>
+      <p>ជ្រើសរើសកញ្ចប់ដែលស័ក្តិសមសម្រាប់លោកគ្រូអ្នកគ្រូ ឬសាលារៀន</p>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Free Trial -->
+      <div class="pricing-card">
+        <div>
+          <h3>សាកល្បងឥតគិតថ្លៃ</h3>
+          <p style="color: var(--text-muted);">សម្រាប់លោកគ្រូអ្នកគ្រូសាកល្បង</p>
+          <div class="pricing-price">$0 <span>/ 7 ថ្ងៃ</span></div>
+          <ul class="pricing-features">
+            <li>✅ បង្កើតសំណួរមិនកំណត់</li>
+            <li>✅ សាកល្បង Gemini AI ៥ ដង</li>
+            <li>✅ លេងបានរហូតដល់ ២០ នាក់</li>
+            <li>✅ គាំទ្រទាំង ៤ កម្រិតសិក្សា</li>
+          </ul>
+        </div>
+        <a href="https://t.me/your_telegram_handle" target="_blank" class="btn btn-secondary">
+          សាកល្បង Free
+        </a>
+      </div>
+
+      <!-- Teacher Pro -->
+      <div class="pricing-card popular">
+        <div class="popular-tag">🔥 ពេញនិយមបំផុត</div>
+        <div>
+          <h3>Teacher Pro (គ្រូបង្រៀន)</h3>
+          <p style="color: var(--text-muted);">ទិញដាច់ ប្រើបានមួយជីវិត (Lifetime)</p>
+          <div class="pricing-price">$15 <span>/ មួយជីវិត</span></div>
+          <ul class="pricing-features">
+            <li>✅ ប្រើប្រាស់បានពេញលេញ ១០០%</li>
+            <li>✅ Gemini AI Quiz Generator គ្មានដែនកំណត់</li>
+            <li>✅ ដំណើរការ Offline LAN គ្មាន Internet</li>
+            <li>✅ សិស្សចូលលេងមិនកំណត់ចំនួន</li>
+            <li>✅ ទទួលបានការ Update មុខងារថ្មីៗរហូត</li>
+          </ul>
+        </div>
+        <a href="https://t.me/your_telegram_handle" target="_blank" class="btn btn-primary">
+          បញ្ជាទិញ License
+        </a>
+      </div>
+
+      <!-- School Campus -->
+      <div class="pricing-card">
+        <div>
+          <h3>Campus Edition (សាលារៀន)</h3>
+          <p style="color: var(--text-muted);">សម្រាប់សាលារៀន និងវិទ្យាស្ថាន</p>
+          <div class="pricing-price">$99 <span>/ ស្ថាប័ន</span></div>
+          <ul class="pricing-features">
+            <li>✅ License សម្រាប់គ្រូទាំងអស់ក្នុងសាលា</li>
+            <li>✅ ដាក់ Logo និង Brand របស់សាលាផ្ទាល់</li>
+            <li>✅ ដំណើរការលើ Local Server របស់សាលា</li>
+            <li>✅ បណ្ដុះបណ្ដាលការប្រើប្រាស់ជូនគ្រូផ្ទាល់</li>
+            <li>✅ Support បច្ចេកទេសពិសេស ២៤/៧</li>
+          </ul>
+        </div>
+        <a href="https://t.me/your_telegram_handle" target="_blank" class="btn btn-secondary">
+          ទាក់ទងកញ្ចប់សាលា
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="container" style="padding: 40px 24px;">
+    <div class="section-title">
+      <h2>សំណួរដែលសួរញឹកញាប់ (FAQ)</h2>
+    </div>
+
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-question">❓ តើសិស្សត្រូវការ Download App លើទូរស័ព្ទដៃដែរឬទេ?</div>
+        <div class="faq-answer">មិនបាច់ទេ! សិស្សគ្រាន់តែយកទូរស័ព្ទដៃ Scan QR Code លើផ្ទាំងកុំព្យូទ័រគ្រូ នោះនឹងបើកចូលទំព័រឆ្លើយសំណួរតាមរយៈ Web Browser ភ្លាមៗ។</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">❓ តើ AC-Kahoot ដំណើរការដោយគ្មាន Internet យ៉ាងដូចម្តេច?</div>
+        <div class="faq-answer">កុំព្យូទ័រគ្រូ និងទូរស័ព្ទសិស្សគ្រាន់តែភ្ជាប់ទៅកាន់ WiFi ឬ Hotspot តែមួយ (មិនចាំបាច់មានសេវាអ៊ីនធឺណិតទេ) ប្រព័ន្ធនឹងបញ្ជូនទិន្នន័យតាម Local Network ភ្លាមៗ គ្មាន Lag ឡើយ។</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">❓ របៀបទិញ និងទូទាត់ប្រាក់យ៉ាងដូចម្តេច?</div>
+        <div class="faq-answer">លោកគ្រូអ្នកគ្រូអាចទូទាត់តាមរយៈ ABA ឬ KHQR រួចផ្ញើ Hardware ID មកកាន់ក្រុមការងារយើងតាម Telegram ដើម្បីទទួលបាន License Key ភ្លាមៗ។</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>© 2026 AC-Kahoot! រក្សាសិទ្ធិគ្រប់យ៉ាង។ ផលិតឡើងសម្រាប់វិស័យអប់រំនៅកម្ពុជា 🇰🇭</p>
+      <p style="font-size: 0.85rem; margin-top: 8px;">ទំនាក់ទំនងតាម Telegram: <a href="https://t.me/your_telegram_handle" style="color: #818cf8; text-decoration: none;">@your_telegram_handle</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

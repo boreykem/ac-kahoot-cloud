@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Kantumruy Pro', 'Outfit', sans-serif;
+    background: radial-gradient(circle at top center, #35106b 0%, #150428 100%);
+    min-height: 100vh;
+    color: #ffffff;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Glassmorphism - High Performance GPU Optimized */
+.glass-panel {
+  background: rgba(26, 4, 56, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(168, 85, 247, 0.4);
+  transform: translateY(-2px);
+}
+
+/* 3D Button Push Effect */
+.btn-3d {
+  transition: all 0.1s ease;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+.btn-3d:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.btn-red {
+  background-color: #e21b3c;
+  box-shadow: 0 6px 0 #9c0e25;
+}
+.btn-red:active {
+  box-shadow: 0 2px 0 #9c0e25;
+}
+
+.btn-blue {
+  background-color: #1368ce;
+  box-shadow: 0 6px 0 #0a4387;
+}
+.btn-blue:active {
+  box-shadow: 0 2px 0 #0a4387;
+}
+
+.btn-yellow {
+  background-color: #d89e00;
+  box-shadow: 0 6px 0 #916800;
+}
+.btn-yellow:active {
+  box-shadow: 0 2px 0 #916800;
+}
+
+.btn-green {
+  background-color: #26890c;
+  box-shadow: 0 6px 0 #185a06;
+}
+.btn-green:active {
+  box-shadow: 0 2px 0 #185a06;
+}
+
+/* Static High Performance Top Banner Gradient */
+.banner-flowing {
+  background: linear-gradient(90deg, #380d75, #6a11cb, #2575fc, #8e2de2, #380d75);
+}
+
+/* ===== Success Flash Progress Bar ===== */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* ===== Scale-In Modal Entry ===== */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scale-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ===== Victory Dancing Animations ===== */
+@keyframes dance-joy {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-16px) rotate(-10deg) scale(1.12); }
+  50% { transform: translateY(0) rotate(0deg) scale(1); }
+  75% { transform: translateY(-16px) rotate(10deg) scale(1.12); }
+}
+
+@keyframes dance-wobble {
+  0%, 100% { transform: rotate(-8deg) scale(1.02); }
+  50% { transform: rotate(8deg) scale(1.08); }
+}
+
+@keyframes dance-jump {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  40% { transform: translateY(-22px) scale(1.05, 1.15); }
+  60% { transform: translateY(-10px) scale(1.02, 1.05); }
+  80% { transform: translateY(0) scale(1.1, 0.95); }
+}
+
+@keyframes crown-pulse {
+  0%, 100% { transform: scale(1) rotate(-5deg); filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.8)); }
+  50% { transform: scale(1.25) rotate(5deg); filter: drop-shadow(0 0 25px rgba(250, 204, 21, 1)); }
+}
+
+.animate-dance-joy {
+  animation: dance-joy 1s infinite ease-in-out;
+}
+
+.animate-dance-wobble {
+  animation: dance-wobble 0.8s infinite ease-in-out;
+}
+
+.animate-dance-jump {
+  animation: dance-jump 0.9s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+
+.animate-crown-pulse {
+  animation: crown-pulse 1.4s infinite ease-in-out;
+}
+
+.podium-1 {
+  background: linear-gradient(135deg, #ffd700, #ffae00, #d48800);
+  box-shadow: 0 12px 35px rgba(255, 174, 0, 0.5);
+}
+
+.podium-2 {
+  background: linear-gradient(135deg, #e0e0e0, #a8a8a8, #7a7a7a);
+  box-shadow: 0 10px 25px rgba(168, 168, 168, 0.4);
+}
+
+.podium-3 {
+  background: linear-gradient(135deg, #cd7f32, #b8621b, #8a430b);
+  box-shadow: 0 8px 20px rgba(184, 98, 27, 0.4);
+}
+
+.podium-star {
+  background: linear-gradient(135deg, #6366f1, #4338ca, #312e81);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+

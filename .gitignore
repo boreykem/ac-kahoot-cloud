@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-server/
+.env
+atlas-credentials.env
+scratch/
+AC-Kahoot-Render-Upload/
+__pycache__/
+*.log
+mongoDB ATlas.txt
