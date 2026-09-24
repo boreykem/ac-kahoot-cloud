@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node server/server.js",
     "build": "vite build",
+    "postinstall": "npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
