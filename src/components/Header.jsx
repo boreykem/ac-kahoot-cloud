@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Sparkles, PlusCircle, Gamepad2, GraduationCap, ChevronDown, Check } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, PlusCircle, Gamepad2, GraduationCap, ChevronDown, Check, MonitorDown } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 import { translations } from '../utils/i18n';
 import AccountSwitcherDropdown from './AccountSwitcherDropdown.jsx';
+import DesktopInstallModal from './DesktopInstallModal.jsx';
 
 export default function Header({ 
   currentView, 
@@ -25,6 +26,10 @@ export default function Header({
   const [muted, setMuted] = useState(false);
   const [isLevelMenuOpen, setIsLevelMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const levelMenuRef = useRef(null);
 
   const t = translations[lang] || translations.km;
@@ -54,6 +59,55 @@ export default function Header({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Handle PWA and standalone app detection
+  useEffect(() => {
+    const checkStandalone = () => {
+      const standalone = 
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true ||
+        document.referrer.includes('android-app://');
+      setIsStandalone(standalone);
+    };
+    checkStandalone();
+
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    sound.playClick();
+    if (deferredPrompt) {
+      try {
+        await deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          setIsInstalled(true);
+        }
+        setDeferredPrompt(null);
+      } catch (err) {
+        console.warn('Install error:', err);
+        setIsInstallModalOpen(true);
+      }
+    } else {
+      setIsInstallModalOpen(true);
+    }
+  };
 
   const isSuperAdmin = currentUser?.role === 'superadmin';
   const isMachineLicensed = systemLicense?.isLicensed === true;
@@ -240,8 +294,21 @@ export default function Header({
           )}
         </div>
 
-        {/* Right Action Controls: Admin & Join Game */}
+        {/* Right Action Controls: Install, Admin & Join Game */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Desktop Install Button - Desktop Only (Hidden on Mobile) */}
+          {!isStandalone && !isInstalled && (
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-purple-800/80 to-indigo-800/80 hover:from-purple-700 hover:to-indigo-700 text-purple-100 hover:text-white border border-purple-400/40 hover:border-cyan-400/60 text-xs sm:text-sm font-semibold font-khmer shadow-md transition-all hover:scale-105 active:scale-95 group"
+              title={lang === 'km' ? 'ដំឡើង AC-Kahoot! លើ Desktop កុំព្យូទ័រ' : 'Install AC-Kahoot! to Desktop'}
+            >
+              <MonitorDown className="w-4 h-4 text-cyan-300 group-hover:scale-110 transition-transform" />
+              <span>{lang === 'km' ? 'ដំឡើងលើ Desktop' : 'Install App'}</span>
+            </button>
+          )}
+
           {isSuperAdmin && (
             <button
               onClick={() => { sound.playClick(); onOpenAdminPanel && onOpenAdminPanel(); }}
@@ -261,6 +328,15 @@ export default function Header({
           </button>
         </div>
       </div>
+
+      {/* Desktop Install Modal Guide */}
+      <DesktopInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        lang={lang}
+        onPromptPWA={handleInstallClick}
+        hasPrompt={!!deferredPrompt}
+      />
     </header>
   );
 }

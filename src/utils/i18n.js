@@ -11,6 +11,7 @@ export const translations = {
     aiQuiz: 'Gemini AI បង្កើតសំណួរ',
     createQuiz: 'បង្កើតថ្មី',
     joinGame: 'ចូលលេង (Join)',
+    installApp: 'ដំឡើងលើ Desktop (Install)',
     soundOn: 'បើកសម្លេង',
     soundOff: 'បិទសម្លេង',
 
@@ -64,6 +65,7 @@ export const translations = {
     aiQuiz: 'AI Quiz Generator',
     createQuiz: 'Create Quiz',
     joinGame: 'Join Game',
+    installApp: 'Install Desktop App',
     soundOn: 'Unmute Audio',
     soundOff: 'Mute Audio',
 
