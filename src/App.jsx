@@ -31,7 +31,7 @@ export default function App() {
   const [authModalTab, setAuthModalTab] = useState('login');
 
   const handleOpenAuthModal = (tab = 'login') => {
-    setAuthModalTab(tab);
+    setAuthModalTab(tab === 'license' ? 'login' : tab);
     setIsAuthModalOpen(true);
   };
   const [currentUser, setCurrentUser] = useState(() => {
@@ -114,8 +114,48 @@ export default function App() {
     }
   };
 
-  // Check URL params on load and check license
+  // Restore & re-validate user session on page load / restart
   useEffect(() => {
+    const restoreUserSession = async () => {
+      try {
+        const token = localStorage.getItem('auth_token') || currentUser?.token;
+        const savedUser = currentUser || (() => {
+          const s = localStorage.getItem('auth_user');
+          return s ? JSON.parse(s) : null;
+        })();
+
+        if (token) {
+          const res = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.user) {
+              const fullUser = { ...data.user, token };
+              saveAccount(fullUser);
+              setCurrentUser(fullUser);
+              setSavedAccounts(getSavedAccounts());
+              if (fullUser.geminiApiKey && !localStorage.getItem('gemini_api_key')) {
+                try { localStorage.setItem('gemini_api_key', fullUser.geminiApiKey); } catch (_) {}
+              }
+              return;
+            }
+          }
+        }
+
+        if (savedUser) {
+          setCurrentUser(savedUser);
+          if (savedUser.geminiApiKey && !localStorage.getItem('gemini_api_key')) {
+            try { localStorage.setItem('gemini_api_key', savedUser.geminiApiKey); } catch (_) {}
+          }
+        }
+      } catch (err) {
+        console.warn("Session restore warning:", err);
+      }
+    };
+
+    restoreUserSession();
+
     const params = new URLSearchParams(window.location.search);
     const pinParam = params.get('pin');
     const joinParam = params.get('join');
@@ -277,7 +317,7 @@ export default function App() {
           <LicenseTopBanner
             currentUser={currentUser}
             systemLicense={systemLicense}
-            onOpenProfileModal={() => handleOpenAuthModal('license')}
+            onOpenProfileModal={() => handleOpenAuthModal('login')}
             onOpenAuthModal={(tab) => handleOpenAuthModal(tab || 'login')}
             onOpenPricingModal={() => setIsPricingModalOpen(true)}
             lang={lang}
@@ -298,8 +338,8 @@ export default function App() {
             onOpenAuthModal={(tab) => handleOpenAuthModal(tab || 'login')}
             onLogout={handleLogout}
             onOpenAdminPanel={() => setIsAdminModalOpen(true)}
-            onOpenProfileModal={() => handleOpenAuthModal('license')}
-            onOpenHWIDModal={() => handleOpenAuthModal('license')}
+            onOpenProfileModal={() => handleOpenAuthModal('login')}
+            onOpenHWIDModal={() => handleOpenAuthModal('login')}
           />
         </div>
       )}

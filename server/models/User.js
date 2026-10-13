@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  geminiApiKey: {
+    type: String,
+    default: '',
+  },
   boundDeviceId: {
     type: String,
     default: null,

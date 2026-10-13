@@ -164,20 +164,7 @@ export default function AccountSwitcherDropdown({
           <span>{lang === 'km' ? '➕ ចូលគណនីថ្មីមួយទៀត (Add Account)' : '+ Add Another Account'}</span>
         </button>
 
-        <div className="flex items-center gap-1.5 pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              onOpenLicense();
-              onClose();
-            }}
-            className="flex-1 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 text-purple-200 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-yellow-300" />
-            <span>{lang === 'km' ? 'សោរម៉ាស៊ីន (License)' : 'License'}</span>
-          </button>
-
+        <div className="pt-1">
           <button
             type="button"
             onClick={() => {
@@ -185,10 +172,10 @@ export default function AccountSwitcherDropdown({
               onLogout();
               onClose();
             }}
-            className="flex-1 py-1.5 px-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+            className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors border border-red-500/20 hover:border-red-400/40"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>{lang === 'km' ? 'ចាកចេញ (Logout)' : 'Logout'}</span>
+            <span>{lang === 'km' ? 'ចាកចេញពីគណនី (Logout)' : 'Logout'}</span>
           </button>
         </div>
       </div>

@@ -47,6 +47,17 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
         });
         sound.playCorrect();
         localStorage.setItem('gemini_api_key', apiKey.trim());
+        if (currentUser?.id || currentUser?.email) {
+          fetch('/api/user/save-gemini-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: currentUser.id,
+              userEmail: currentUser.email,
+              apiKey: apiKey.trim()
+            })
+          }).catch(() => {});
+        }
         setTimeout(() => {
           setIsEditingKey(false);
         }, 1200);
@@ -66,6 +77,16 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
       setTestingKey(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      const saved = localStorage.getItem('gemini_api_key') || currentUser?.geminiApiKey || '';
+      if (saved) {
+        setApiKey(saved);
+        setIsEditingKey(false);
+      }
+    }
+  }, [isOpen, currentUser]);
 
   useEffect(() => {
     if (currentUser?.aiGenerationsCount !== undefined) {
@@ -705,8 +726,26 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
                             const val = e.target.value;
                             setApiKey(val);
                             setKeyTestStatus(null);
-                            if (!val.trim()) {
-                              localStorage.removeItem('gemini_api_key');
+                            if (val.trim()) {
+                              try { localStorage.setItem('gemini_api_key', val.trim()); } catch (_) {}
+                            } else {
+                              try { localStorage.removeItem('gemini_api_key'); } catch (_) {}
+                            }
+                          }}
+                          onBlur={() => {
+                            if (apiKey.trim()) {
+                              try { localStorage.setItem('gemini_api_key', apiKey.trim()); } catch (_) {}
+                              if (currentUser?.id || currentUser?.email) {
+                                fetch('/api/user/save-gemini-key', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    userId: currentUser.id,
+                                    userEmail: currentUser.email,
+                                    apiKey: apiKey.trim()
+                                  })
+                                }).catch(() => {});
+                              }
                             }
                           }}
                           placeholder="បិទភ្ជាប់ Google AI Studio API Key នៅទីនេះ (ឧ. AIzaSy...)"
@@ -719,7 +758,18 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
                               onClick={() => {
                                 setApiKey('');
                                 setKeyTestStatus(null);
-                                localStorage.removeItem('gemini_api_key');
+                                try { localStorage.removeItem('gemini_api_key'); } catch (_) {}
+                                if (currentUser?.id || currentUser?.email) {
+                                  fetch('/api/user/save-gemini-key', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      userId: currentUser.id,
+                                      userEmail: currentUser.email,
+                                      apiKey: ''
+                                    })
+                                  }).catch(() => {});
+                                }
                               }}
                               className="p-1 rounded-md text-gray-400 hover:text-red-400 transition-colors text-[11px]"
                               title="លុប API Key"

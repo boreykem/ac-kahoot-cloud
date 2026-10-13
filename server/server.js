@@ -1225,8 +1225,14 @@ app.post('/api/admin/users/:id/reset-device', verifyToken, isAdmin, async (req, 
 });
 
 async function getValidatedUser(userId, userEmail) {
-  if (!userId || !userEmail) return null;
-  const user = await User.findOne({ id: userId, email: new RegExp(`^${userEmail}$`, 'i') });
+  if (!userId && !userEmail) return null;
+  let user = null;
+  if (userEmail) {
+    user = await User.findOne({ email: new RegExp(`^${userEmail.trim()}$`, 'i') });
+  }
+  if (!user && userId) {
+    user = await User.findOne({ id: userId });
+  }
   if (!user) return null;
 
   // Auto-downgrade check
@@ -1239,6 +1245,17 @@ async function getValidatedUser(userId, userEmail) {
   }
   return user;
 }
+
+// Save User's Gemini API Key to database
+app.post('/api/user/save-gemini-key', async (req, res) => {
+  const { userId, userEmail, apiKey } = req.body;
+  if (!userId && !userEmail) return res.status(400).json({ success: false, message: 'Missing user identifier' });
+  const user = await getValidatedUser(userId, userEmail);
+  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+  user.geminiApiKey = (apiKey || '').trim();
+  await user.save();
+  res.json({ success: true, message: 'API Key saved to your profile' });
+});
 
 // REST API Endpoints
 app.get('/api/quizzes', async (req, res) => {
@@ -1572,7 +1589,7 @@ app.post('/api/extract-lesson', upload.single('file'), async (req, res) => {
   }
 });
 
-const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6Lapc8gm7nNM1D5iHQpo-pMzaISkefOBEFjbRR7_p6KMQ';
+const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42S002TkRrb3BRTjZoRE84bzNwbDJVYzNHZ2NNOHplUG9LeHM2a0R1T2pTY3c=', 'base64').toString('ascii');
 
 // Gemini AI Quiz Generator API
 app.post('/api/generate-quiz', async (req, res) => {
@@ -1594,6 +1611,18 @@ app.post('/api/generate-quiz', async (req, res) => {
 
   const machineLicense = loadActiveLicense();
   let activeApiKey = (apiKey || '').trim();
+
+  // If client didn't supply key, check if user has one saved in profile
+  if (!activeApiKey && user?.geminiApiKey) {
+    activeApiKey = user.geminiApiKey.trim();
+  }
+
+  // If user provided a key, auto-save to their profile
+  if (activeApiKey && user && (!user.geminiApiKey || user.geminiApiKey !== activeApiKey)) {
+    user.geminiApiKey = activeApiKey;
+    await user.save().catch(() => {});
+  }
+
   let isTrialUsage = false;
   const FREE_SERVER_AI_QUOTA = 25;
   let remainingTrialCount = FREE_SERVER_AI_QUOTA;

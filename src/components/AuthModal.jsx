@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Lock, Mail, User, School, Sparkles, LogIn, UserPlus, 
-  KeyRound, ArrowLeft, Send, CheckCircle2, ShieldCheck, 
-  Laptop, Copy, ShieldAlert, RefreshCw, Key, Eye, EyeOff
+  X, Lock, Mail, User, School, LogIn, UserPlus, 
+  KeyRound, ArrowLeft, Send, CheckCircle2, 
+  ShieldAlert, Eye, EyeOff
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audioEngine';
@@ -11,12 +11,11 @@ export default function AuthModal({
   isOpen, 
   onClose, 
   onLoginSuccess, 
-  onActivationSuccess,
   currentUser,
   initialTab = 'login',
   lang = 'km' 
 }) {
-  const [tab, setTab] = useState(initialTab); // 'login' | 'register' | 'license' | 'forgot'
+  const [tab, setTab] = useState(initialTab === 'license' ? 'login' : (initialTab || 'login')); // 'login' | 'register' | 'forgot'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,16 +24,9 @@ export default function AuthModal({
   const [name, setName] = useState('');
   const [school, setSchool] = useState('');
   const [avatar, setAvatar] = useState('👨‍🏫');
-  const [licenseKeyInput, setLicenseKeyInput] = useState('');
-  const [regLicenseKey, setRegLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [copiedHwid, setCopiedHwid] = useState(false);
-
-  // Machine info & Bot config state
-  const [machineInfo, setMachineInfo] = useState(null);
-  const [botConfig, setBotConfig] = useState(null);
 
   // Forgot password flow states
   const [forgotStep, setForgotStep] = useState(1);
@@ -45,67 +37,15 @@ export default function AuthModal({
 
   useEffect(() => {
     if (isOpen) {
-      setTab(initialTab || 'login');
+      setTab(initialTab === 'license' ? 'login' : (initialTab || 'login'));
       setError('');
       setSuccessMsg('');
-      fetchMachineInfo();
-      fetchBotConfig();
     }
   }, [isOpen, initialTab]);
-
-  const fetchBotConfig = async () => {
-    try {
-      const res = await fetch('/api/bot/config');
-      const data = await res.json();
-      if (data && data.success) {
-        setBotConfig(data);
-      }
-    } catch {}
-  };
-
-  const fetchMachineInfo = async () => {
-    try {
-      const res = await fetch('/api/license/machine-info');
-      const data = await res.json();
-      if (data && data.success) {
-        setMachineInfo(data);
-      }
-    } catch (err) {
-      console.warn('Machine info fetch warning:', err);
-    }
-  };
 
   if (!isOpen) return null;
 
   const avatars = ['👨‍🏫', '👩‍🏫', '🧑‍🏫', '🎓', '🏛️', '🌟', '👓', '📚'];
-
-  const handleCopyHwid = () => {
-    if (!machineInfo?.hwid) return;
-    navigator.clipboard.writeText(machineInfo.hwid);
-    setCopiedHwid(true);
-    sound.playClick();
-    setTimeout(() => setCopiedHwid(false), 2500);
-  };
-
-  const handleSendTelegram = () => {
-    if (!machineInfo?.hwid) return;
-    const cleanHwid = machineInfo.hwid.replace(/[^a-zA-Z0-9_-]/g, '');
-    const username = botConfig?.botUsername || 'ac_mart_programer_developer_bot';
-    const botUrl = `https://t.me/${username}?start=HWID_${cleanHwid}`;
-    
-    // Auto-copy full text as backup
-    const clientName = currentUser?.name || name || 'លោកគ្រូ/អ្នកគ្រូ';
-    const adminName = botConfig?.adminName || 'លោកគ្រូ បូរី';
-    const rawMsg = `សួស្តី${adminName}! ខ្ញុំបាទ/នាងខ្ញុំឈ្មោះ ${clientName} ចង់ទិញ License AC-Kahoot Pro។\n\n💻 Hardware Machine ID របស់ខ្ញុំ៖\n${machineInfo.hwid}\n\nសូមជួយបង្កើត License Key ជូនខ្ញុំផង។ សូមអរគុណ!`;
-    try { navigator.clipboard.writeText(rawMsg); } catch(e) {}
-    
-    setCopiedHwid(true);
-    sound.playClick();
-    setTimeout(() => setCopiedHwid(false), 3000);
-
-    // Open Telegram Bot
-    window.open(botUrl, '_blank');
-  };
 
   const handleLogin = async (e) => {
     e?.preventDefault();
@@ -161,16 +101,13 @@ export default function AuthModal({
           email, 
           password, 
           school, 
-          avatar,
-          licenseKey: regLicenseKey.trim() || undefined
+          avatar
         })
       });
       const data = await res.json();
       if (data.success && data.user) {
         sound.playCorrect();
-        if (regLicenseKey.trim()) {
-          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        }
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         const userWithToken = { ...data.user, token: data.token || data.user.token };
         if (data.token) {
           try { localStorage.setItem('auth_token', data.token); } catch (_) {}
@@ -181,55 +118,6 @@ export default function AuthModal({
         setError(data.message || (lang === 'km' ? 'ការចុះឈ្មោះបរាជ័យ' : 'Registration failed'));
       }
     } catch (err) {
-      setError(lang === 'km' ? 'មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ' : 'Cannot connect to server');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleActivateHardware = async (e) => {
-    e?.preventDefault();
-    if (!licenseKeyInput.trim()) {
-      setError(lang === 'km' ? 'សូមបញ្ចូលលេខកូដ License Key!' : 'Please enter license key!');
-      return;
-    }
-
-    sound.playClick();
-    setLoading(true);
-    setError('');
-    setSuccessMsg('');
-
-    try {
-      const res = await fetch('/api/license/activate-hwid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          licenseKey: licenseKeyInput.trim(),
-          clientName: currentUser?.name || name || 'អតិថិជនកិត្តិយស',
-          email: currentUser?.email || email || ''
-        })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        sound.playCorrect();
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 }
-        });
-        setSuccessMsg(data.message || '🎉 បានបញ្ជាក់សោរជោគជ័យ!');
-        await fetchMachineInfo();
-        if (onActivationSuccess) onActivationSuccess(data);
-        setTimeout(() => {
-          onClose();
-        }, 1600);
-      } else {
-        sound.error();
-        setError(data.message || '🔒 លេខកូដ License Key មិនត្រឹមត្រូវ ឬមិនត្រូវជាមួយម៉ាស៊ីននេះឡើយ!');
-      }
-    } catch (err) {
-      sound.error();
       setError(lang === 'km' ? 'មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ' : 'Cannot connect to server');
     } finally {
       setLoading(false);
@@ -316,8 +204,6 @@ export default function AuthModal({
     }
   };
 
-  const isAlreadyLicensed = machineInfo?.activeLicense?.isLicensed;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 font-khmer animate-scale-in">
       <div className="glass-panel border border-purple-500/30 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl bg-[#1a0833] text-white">
@@ -326,20 +212,20 @@ export default function AuthModal({
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-purple-950/90 via-indigo-950/80 to-[#1a0833]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-purple-950/50">
-              {tab === 'license' ? <ShieldCheck className="w-5 h-5" /> : tab === 'forgot' ? <KeyRound className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+              {tab === 'forgot' ? <KeyRound className="w-5 h-5" /> : tab === 'register' ? <UserPlus className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                {tab === 'license'
-                  ? '🛡️ មជ្ឈមណ្ឌលសោរ & អាជ្ញាប័ណ្ណ (License)'
-                  : tab === 'forgot'
+                {tab === 'forgot'
                   ? '🔑 ភ្លេចលេខសម្ងាត់ (Reset Password)'
-                  : '🎯 គណនីគ្រូបង្រៀន & អាជ្ញាប័ណ្ណ'}
+                  : tab === 'register'
+                  ? '✨ ចុះឈ្មោះគណនីគ្រូបង្រៀន'
+                  : '🎯 គណនីគ្រូបង្រៀន (Teacher Account)'}
               </h2>
               <p className="text-[11px] text-purple-200/70">
-                {tab === 'license'
-                  ? 'ការពារកម្មវិធី និងចាក់សោរជាមួយកុំព្យូទ័រនេះ'
-                  : 'គ្រប់គ្រងវិញ្ញាសា និងសិទ្ធិប្រើប្រាស់ពេញលេញ'}
+                {tab === 'forgot'
+                  ? 'កំណត់លេខសម្ងាត់ថ្មីតាមរយៈ Gmail'
+                  : 'គ្រប់គ្រងវិញ្ញាសា និងបង្រៀនសិស្ស'}
               </p>
             </div>
           </div>
@@ -352,9 +238,9 @@ export default function AuthModal({
           </button>
         </div>
 
-        {/* 3 Main Tabs: Login | Register | Hardware License */}
+        {/* 2 Main Tabs: Login | Register */}
         {tab !== 'forgot' && (
-          <div className="grid grid-cols-3 p-1.5 bg-black/40 border-b border-white/10 text-xs font-bold gap-1">
+          <div className="grid grid-cols-2 p-1.5 bg-black/40 border-b border-white/10 text-xs font-bold gap-1">
             <button
               type="button"
               onClick={() => { setTab('login'); setError(''); setSuccessMsg(''); }}
@@ -376,17 +262,6 @@ export default function AuthModal({
               }`}
             >
               <span>✨ ចុះឈ្មោះ</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setTab('license'); setError(''); setSuccessMsg(''); }}
-              className={`py-2 px-1 rounded-xl transition-all flex items-center justify-center gap-1 ${
-                tab === 'license'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md border border-purple-400/40'
-                  : 'text-purple-300 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <span>🛡️ សោរម៉ាស៊ីន</span>
             </button>
           </div>
         )}
@@ -560,20 +435,6 @@ export default function AuthModal({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-amber-300 mb-1 flex items-center gap-1">
-                  <Key className="w-3.5 h-3.5" />
-                  <span>លេខកូដ License Key (បើមាន / Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={regLicenseKey}
-                  onChange={(e) => setRegLicenseKey(e.target.value)}
-                  placeholder="ឧទាហរណ៍៖ ACK-PRO-LIFE-XXXX-YYYY"
-                  className="w-full bg-black/50 border border-amber-500/30 focus:border-amber-400 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-slate-600 focus:outline-none"
-                />
-              </div>
-
               <button
                 type="submit"
                 disabled={loading}
@@ -583,108 +444,6 @@ export default function AuthModal({
                 <span>{loading ? 'កំពុងបង្កើតគណនី...' : 'បង្កើតគណនី (Sign Up)'}</span>
               </button>
             </form>
-          )}
-
-          {/* TAB 3: HARDWARE MACHINE LICENSE */}
-          {tab === 'license' && (
-            <div className="space-y-4">
-              {/* Current Status Card */}
-              {isAlreadyLicensed ? (
-                <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-bold text-emerald-300 text-xs sm:text-sm">
-                      {machineInfo?.activeLicense?.planTitle}
-                    </div>
-                    <div className="text-[11px] text-emerald-200/80 mt-0.5">
-                      ចុះឈ្មោះជូន៖ <strong>{machineInfo?.activeLicense?.licensedTo}</strong>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-500/40 flex items-start gap-2.5">
-                  <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-xs text-amber-200/90">
-                    <strong className="text-amber-300 block text-xs mb-0.5">Free Trial Edition (សាកល្បង)</strong>
-                    ផ្ញើលេខ Machine ID ខាងក្រោមទៅកាន់ Telegram អ្នកលក់ ដើម្បីទទួលបាន License Key ប្រើមួយជីវិត!
-                  </div>
-                </div>
-              )}
-
-              {/* Machine ID Box */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Laptop className="w-4 h-4 text-purple-400" />
-                  លេខសម្គាល់កុំព្យូទ័ររបស់អ្នក (Hardware Machine ID):
-                </label>
-                <div className="flex items-center gap-2 p-2.5 bg-slate-950 border border-purple-500/40 rounded-2xl font-mono text-xs sm:text-sm text-purple-200">
-                  <span className="flex-1 select-all font-bold tracking-wider truncate">
-                    {machineInfo?.hwid || 'កំពុងទាញយក HWID...'}
-                  </span>
-                  <button
-                    onClick={handleCopyHwid}
-                    type="button"
-                    className="px-3 py-1.5 rounded-xl bg-purple-600/40 hover:bg-purple-600/60 border border-purple-400/40 text-xs font-semibold transition-all flex items-center gap-1 text-purple-200 shrink-0"
-                  >
-                    {copiedHwid ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>បាន Copy!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleSendTelegram}
-                  type="button"
-                  className="w-full py-2 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-sky-200 text-xs font-semibold transition-all flex items-center justify-center gap-2"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  ផ្ញើ HWID នេះទៅកាន់ Telegram អ្នកលក់ (Buy via Telegram)
-                </button>
-              </div>
-
-              {/* Key Input & Activate Button */}
-              <form onSubmit={handleActivateHardware} className="space-y-3 pt-2 border-t border-white/10">
-                <div>
-                  <label className="block text-xs font-bold text-purple-200 mb-1 flex items-center gap-1.5">
-                    <Key className="w-4 h-4 text-amber-400" />
-                    បញ្ចូលលេខកូដសោរ (Enter License Key):
-                  </label>
-                  <input
-                    type="text"
-                    value={licenseKeyInput}
-                    onChange={(e) => setLicenseKeyInput(e.target.value)}
-                    placeholder="ឧទាហរណ៍៖ ACK-PRO-LIFE-XXXX-YYYY"
-                    className="w-full px-3.5 py-2.5 bg-black/60 border border-purple-400/30 focus:border-purple-400 rounded-xl text-white font-mono text-xs placeholder-slate-600 outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || !licenseKeyInput.trim()}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-purple-900/30 transition-all flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>កំពុងផ្ទៀងផ្ទាត់...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Activate License (បញ្ជាក់សោរ)</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
           )}
 
           {/* TAB: FORGOT PASSWORD */}

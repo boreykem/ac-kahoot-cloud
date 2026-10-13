@@ -204,10 +204,6 @@ export default function Header({
                   setIsAccountMenuOpen(false);
                   onOpenAuthModal && onOpenAuthModal('login');
                 }}
-                onOpenLicense={() => {
-                  setIsAccountMenuOpen(false);
-                  onOpenAuthModal && onOpenAuthModal('license');
-                }}
                 onLogout={() => {
                   setIsAccountMenuOpen(false);
                   onLogout && onLogout();
@@ -215,20 +211,12 @@ export default function Header({
                 lang={lang}
               />
             </div>
-          ) : isMachineLicensed ? (
-            <button
-              onClick={() => { sound.playClick(); onOpenAuthModal && onOpenAuthModal('license'); }}
-              className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 text-xs font-bold font-khmer px-3 py-1.5 rounded-xl border border-emerald-400/40 transition-all hover:scale-105 shadow-md"
-              title="ម៉ាស៊ីននេះបានបញ្ជាក់សោរ Pro រួចរាល់"
-            >
-              <span>🛡️ 👑 {systemLicense?.planTitle || 'Pro Lifetime Edition'}</span>
-            </button>
           ) : (
             <button
               onClick={() => { sound.playClick(); onOpenAuthModal && onOpenAuthModal('login'); }}
               className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold font-khmer px-3 py-1.5 rounded-xl border border-purple-400/40 transition-all hover:scale-105 shadow-md"
             >
-              <span>🔑 {lang === 'km' ? 'ចូលគណនី / សោរម៉ាស៊ីន' : 'Account & License'}</span>
+              <span>🔑 {lang === 'km' ? 'ចូលគណនី' : 'Sign In'}</span>
             </button>
           )}
 
