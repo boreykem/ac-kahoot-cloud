@@ -1589,7 +1589,7 @@ app.post('/api/extract-lesson', upload.single('file'), async (req, res) => {
   }
 });
 
-const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42S002TkRrb3BRTjZoRE84bzNwbDJVYzNHZ2NNOHplUG9LeHM2a0R1T2pTY3c=', 'base64').toString('ascii');
+const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42TFdkRS1KMWhlazl0bFNiem9Qb2tJSURtRVNNM0VJSlVhb011Y3ExY2tGaHc=', 'base64').toString('ascii');
 
 // Gemini AI Quiz Generator API
 app.post('/api/generate-quiz', async (req, res) => {
@@ -1668,12 +1668,11 @@ app.post('/api/generate-quiz', async (req, res) => {
   if (activeApiKey) {
     const isProTier = modelTier === 'pro';
     const candidateModels = [
-      'gemini-3.1-flash-lite',
-      'gemini-3.5-flash-lite',
-      'gemini-3.5-flash',
-      'gemini-3.6-flash',
       'gemini-flash-latest',
-      'gemini-flash-lite-latest'
+      'gemini-flash-lite-latest',
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-3.6-flash'
     ];
 
     const isPreTest = testType === 'pre-test';
