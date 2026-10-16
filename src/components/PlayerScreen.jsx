@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, Flame, Trophy, Home, AlertCircle, Dices, Send, Link as LinkIcon, Check, Sparkles } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 
+const cleanDisplayText = (str) => {
+  if (!str) return '';
+  return String(str).replace(/[\uFFFD\u00A0]/g, ' ').trim();
+};
+
 export default function PlayerScreen({ socket, initialPin, onExit }) {
   const [pin, setPin] = useState(initialPin || '');
   const [nickname, setNickname] = useState('');
@@ -347,9 +352,9 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
   // ==========================================
   if (playerState === 'QUESTION') {
     return (
-      <div className="min-h-screen flex flex-col justify-between p-3 sm:p-5 font-khmer bg-[#140228]">
+      <div className="h-[100dvh] max-h-[100dvh] flex flex-col justify-between p-2.5 sm:p-4 font-khmer bg-[#140228] select-none overflow-hidden">
         {/* Player Header with Points & Countdown Timer */}
-        <div className="flex items-center justify-between glass-panel px-3.5 py-2 rounded-2xl gap-2">
+        <div className="flex items-center justify-between glass-panel px-3.5 py-1.5 rounded-2xl gap-2 shrink-0">
           <div className="flex items-center gap-2 truncate">
             <span className="text-xl shrink-0">{avatar}</span>
             <span className="text-xs font-bold text-white truncate max-w-[100px] sm:max-w-[150px]">{nickname}</span>
@@ -365,7 +370,7 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
             <span className="px-2 py-0.5 rounded-lg bg-purple-950/80 border border-purple-400/30 text-[11px] font-bold text-purple-200 font-['Outfit']">
               {currentQIndex + 1}/{totalQuestions}
             </span>
-            <span className={`px-2 py-0.5 rounded-lg font-black text-xs font-['Outfit'] transition-all ${
+            <span className={`px-2.5 py-0.5 rounded-lg font-black text-xs font-['Outfit'] transition-all ${
               timeLeft <= 5 ? 'bg-red-600 text-white animate-pulse' : 'bg-yellow-400 text-black'
             }`}>
               ⏱️ {timeLeft}s
@@ -373,10 +378,10 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
           </div>
         </div>
 
-        {/* Question Text Box on Mobile */}
+        {/* Question Text Box on Mobile - Scrollable & Full Text */}
         {questionText && (
-          <div className="glass-panel px-4 py-2.5 rounded-2xl text-center my-1.5 text-xs sm:text-sm font-bold text-white leading-relaxed line-clamp-3 border border-white/15 bg-black/40 shadow-md">
-            {questionText}
+          <div className="glass-panel px-3.5 py-2.5 rounded-2xl text-center my-1.5 max-h-[24vh] sm:max-h-[26vh] overflow-y-auto text-xs sm:text-sm md:text-base font-bold text-white leading-relaxed border border-purple-500/30 bg-black/55 shadow-lg shrink-0">
+            {cleanDisplayText(questionText)}
           </div>
         )}
 
@@ -502,43 +507,48 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
           </div>
         ) : optionsCount === 2 || questionType === 'true_false' ? (
           /* True / False Screen */
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 my-auto h-[65vh]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 flex-1 my-1 min-h-0">
             <button
               onClick={() => handleSelectChoice(0)}
-              className="bg-[#e21b3c] btn-red btn-3d rounded-3xl flex flex-col items-center justify-center text-white shadow-2xl transition-all gap-2 p-5"
+              className="bg-[#e21b3c] btn-red btn-3d rounded-3xl flex flex-col items-center justify-center text-white shadow-2xl transition-all gap-2 p-4 h-full active:scale-95"
             >
-              <span className="text-5xl sm:text-7xl font-black font-['Outfit']">▲</span>
-              <span className="text-xl sm:text-2xl font-extrabold font-khmer text-center">
-                {questionOptions[0] || 'ត្រូវ (True)'}
+              <span className="text-6xl sm:text-8xl font-black font-['Outfit'] drop-shadow-md leading-none">▲</span>
+              <span className="text-lg sm:text-2xl font-extrabold font-khmer text-center">
+                {cleanDisplayText(questionOptions[0]) || 'ត្រូវ (True)'}
               </span>
             </button>
 
             <button
               onClick={() => handleSelectChoice(1)}
-              className="bg-[#1368ce] btn-blue btn-3d rounded-3xl flex flex-col items-center justify-center text-white shadow-2xl transition-all gap-2 p-5"
+              className="bg-[#1368ce] btn-blue btn-3d rounded-3xl flex flex-col items-center justify-center text-white shadow-2xl transition-all gap-2 p-4 h-full active:scale-95"
             >
-              <span className="text-5xl sm:text-7xl font-black font-['Outfit']">◆</span>
-              <span className="text-xl sm:text-2xl font-extrabold font-khmer text-center">
-                {questionOptions[1] || 'ខុស (False)'}
+              <span className="text-6xl sm:text-8xl font-black font-['Outfit'] drop-shadow-md leading-none">◆</span>
+              <span className="text-lg sm:text-2xl font-extrabold font-khmer text-center">
+                {cleanDisplayText(questionOptions[1]) || 'ខុស (False)'}
               </span>
             </button>
           </div>
         ) : (
-          /* Multiple Choice 4 Screen */
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 my-auto h-[65vh]">
+          /* Multiple Choice 4 Screen - Giant 2x-3x Kahoot Icons and Full Unclamped Khmer Text */
+          <div className="grid grid-cols-2 gap-2 sm:gap-3.5 flex-1 my-1 min-h-0">
             {choiceButtons.map((btn, idx) => {
               const optText = questionOptions[idx];
               return (
                 <button
                   key={idx}
                   onClick={() => handleSelectChoice(idx)}
-                  className={`${btn.bg} ${btn.color} btn-3d rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center text-white shadow-2xl transition-all p-3 sm:p-4 gap-1.5`}
+                  className={`${btn.bg} ${btn.color} btn-3d rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center text-white shadow-2xl transition-all p-2.5 sm:p-4 gap-1.5 overflow-hidden h-full active:scale-95 cursor-pointer`}
                 >
-                  <span className="text-3xl sm:text-5xl font-black font-['Outfit']">{btn.icon}</span>
+                  {/* Giant Geometric Shape Icon (2x-3x Larger) */}
+                  <span className="text-4xl sm:text-6xl md:text-7xl font-black font-['Outfit'] drop-shadow-md select-none shrink-0 leading-none py-1">
+                    {btn.icon}
+                  </span>
                   {optText && (
-                    <span className="text-xs sm:text-sm md:text-base font-extrabold font-khmer text-center line-clamp-3 leading-snug break-words px-1">
-                      {optText}
-                    </span>
+                    <div className="flex-1 flex items-center justify-center w-full overflow-y-auto px-1 min-h-0">
+                      <span className="text-[11px] sm:text-xs md:text-sm font-bold font-khmer text-center leading-normal break-words">
+                        {cleanDisplayText(optText)}
+                      </span>
+                    </div>
                   )}
                 </button>
               );
