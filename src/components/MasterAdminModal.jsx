@@ -21,7 +21,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
   // Telegram Bot & Pricing State
   const [botPricing, setBotPricing] = useState({
-    botToken: "8884699311:AAFusHbd_PRcGrPZWH9Ntc-zFA342IEVDY4",
+    botToken: "8884699311:AAF5BsKkpkyNkY8PRvQaKrUoSIQqsYYXf6g",
     botUsername: "ac_mart_programer_developer_bot",
     price1Month: "$0.5",
     price1Year: "$2.5",
@@ -1201,7 +1201,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                         type="text"
                         value={botPricing.botToken}
                         onChange={(e) => setBotPricing({ ...botPricing, botToken: e.target.value })}
-                        placeholder="8884699311:AAFusHbd_PRcGrPZWH9Ntc-zFA342IEVDY4"
+                        placeholder="8884699311:AAF5BsKkpkyNkY8PRvQaKrUoSIQqsYYXf6g"
                         className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-xs text-yellow-300 focus:outline-none focus:border-sky-400 font-mono"
                       />
                     </div>

@@ -368,7 +368,7 @@ function loadBotPricing() {
     console.error('Error reading botPricing.json', e);
   }
   return {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '8884699311:AAFusHbd_PRcGrPZWH9Ntc-zFA342IEVDY4',
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '8884699311:AAF5BsKkpkyNkY8PRvQaKrUoSIQqsYYXf6g',
     botUsername: process.env.TELEGRAM_BOT_USERNAME || 'ac_mart_programer_developer_bot',
     price1Month: '$0.5',
     price1Year: '$2.5',
