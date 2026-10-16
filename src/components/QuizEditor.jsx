@@ -453,25 +453,18 @@ export default function QuizEditor({ initialQuiz, onSave, onCancel, currentUser,
         <div className="flex items-center gap-2">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">ត្រឡប់ក្រោយ</span>
+            <span>ត្រឡប់ក្រោយ</span>
           </button>
           <button
             onClick={printQuizToPDF}
-            className="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 text-sm font-bold rounded-xl transition-all flex items-center gap-2 border border-indigo-500/30"
+            className="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 text-sm font-bold rounded-xl transition-all flex items-center gap-2 border border-indigo-500/30 cursor-pointer"
             title="ទាញយក ឬព្រីនជា PDF (មានចម្លើយ និងការពន្យល់)"
           >
             <Printer className="w-4 h-4" />
-            <span className="hidden md:inline">Print / PDF</span>
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 hover:scale-105"
-          >
-            <Save className="w-4 h-4" />
-            <span className="hidden sm:inline">រក្សាទុក</span>
+            <span className="hidden sm:inline">Print / PDF</span>
           </button>
         </div>
 
