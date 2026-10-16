@@ -32,7 +32,8 @@ export default function AuthModal({
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotEmail, setForgotEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [backupOtp, setBackupOtp] = useState('');
+  const [telegramBotUrl, setTelegramBotUrl] = useState('');
+  const [adminTelegram, setAdminTelegram] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
 
@@ -146,10 +147,8 @@ export default function AuthModal({
       if (data.success) {
         sound.playCorrect();
         setSuccessMsg(data.message);
-        if (data.backupOtp) {
-          setBackupOtp(data.backupOtp);
-          setOtpCode(data.backupOtp);
-        }
+        if (data.telegramBotUrl) setTelegramBotUrl(data.telegramBotUrl);
+        if (data.adminTelegram) setAdminTelegram(data.adminTelegram);
         setForgotStep(2);
       } else {
         setError(data.message || 'មិនអាចផ្ញើលេខកូដបានទេ');
@@ -477,33 +476,34 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black shadow-lg flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
                     <Send className="w-4 h-4" />
-                    <span>{loading ? 'កំពុងផ្ញើ...' : 'ផ្ញើលេខកូដទៅ Gmail (Send Code)'}</span>
+                    <span>{loading ? 'កំពុងដំណើរការ...' : 'ស្នើសុំលេខកូដសម្ងាត់ OTP (Get OTP Code)'}</span>
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOtpAndReset} className="space-y-3.5">
-                  {backupOtp && (
-                    <div className="bg-amber-500/15 border border-amber-400/40 rounded-xl p-3 text-xs text-amber-200 flex items-center justify-between shadow-lg">
-                      <div>
-                        <span className="font-semibold block text-yellow-300 text-[11px]">លេខកូដ OTP បម្រុង (Backup Code)៖</span>
-                        <span className="font-mono text-xl font-black text-yellow-400 tracking-widest">{backupOtp}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setOtpCode(backupOtp)}
-                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] rounded-lg shadow transition-all cursor-pointer"
+                  {telegramBotUrl ? (
+                    <div className="space-y-2 bg-gradient-to-br from-sky-950/60 to-purple-950/60 border border-sky-500/30 rounded-2xl p-3.5 shadow-xl text-center">
+                      <p className="text-xs text-sky-200 font-semibold leading-relaxed">
+                        👉 ចុចប៊ូតុងខាងក្រោមដើម្បីបើក <strong>Telegram Bot</strong> ផ្លូវការ រួចចុច <strong>START</strong> នោះ Bot នឹងផ្ញើលេខកូដសម្ងាត់ ៦ ខ្ទង់ឱ្យលោកគ្រូភ្លាមៗ៖
+                      </p>
+                      <a
+                        href={telegramBotUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-900/50 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                       >
-                        បំពេញលេខកូដ
-                      </button>
+                        <Send className="w-4 h-4 text-white" />
+                        <span>បើក Telegram ទទួលលេខកូដ OTP</span>
+                      </a>
                     </div>
+                  ) : (
+                    <p className="text-[11px] text-purple-300/80 text-center leading-relaxed">
+                      💡 សូមពិនិត្យមើលសារលេខកូដ OTP ៦ ខ្ទង់ដែលបានផ្ញើទៅកាន់ Telegram ឬអ៊ីមែលរបស់អ្នក។
+                    </p>
                   )}
-
-                  <p className="text-[11px] text-purple-300/80 text-center leading-relaxed">
-                    💡 ប្រសិនបើមិនឃើញសារក្នុង Inbox សូមពិនិត្យមើលក្នុងប្រអប់ <strong>Spam / Junk Mail</strong>។
-                  </p>
 
                   <div>
                     <label className="block text-xs font-bold text-yellow-300 mb-1">លេខកូដ OTP ៦ ខ្ទង់</label>
@@ -562,11 +562,22 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>{loading ? 'កំពុងផ្ទៀងផ្ទាត់...' : 'កំណត់លេខសម្ងាត់ថ្មី (Set Password)'}</span>
                   </button>
+
+                  <div className="pt-1 text-center">
+                    <a
+                      href={`https://t.me/${adminTelegram || 'KEMBOREY'}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-purple-300/90 hover:text-yellow-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      💬 ជួបបញ្ហា? ឆាតទាក់ទងលោកគ្រូ បូរី ផ្ទាល់ (@{adminTelegram || 'KEMBOREY'})
+                    </a>
+                  </div>
                 </form>
               )}
 

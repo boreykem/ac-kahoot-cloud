@@ -668,6 +668,7 @@ app.post('/api/auth/update-profile', async (req, res) => {
 
 // In-memory OTP Store for Password Reset
 const resetOtpMap = new Map();
+const telegramResetTokens = new Map();
 
 const SMTP_USER = process.env.SMTP_USER || 'baureykem@gmail.com';
 const SMTP_PASS = process.env.SMTP_PASS || 'mbqpwcsjlautnufn';
@@ -731,20 +732,34 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const resetToken = crypto.randomBytes(6).toString('hex');
+
   resetOtpMap.set(cleanEmail, {
     otp,
     expiresAt: Date.now() + 15 * 60 * 1000 // 15 mins
   });
 
-  // Non-blocking email send in background with safety timeout
+  telegramResetTokens.set(resetToken, {
+    email: cleanEmail,
+    otp,
+    userName: user.name,
+    expiresAt: Date.now() + 15 * 60 * 1000
+  });
+
+  currentBotPricing = loadBotPricing();
+  const botUsername = (currentBotPricing.botUsername || process.env.TELEGRAM_BOT_USERNAME || 'ac_mart_programer_developer_bot').replace(/^@/, '').trim();
+  const adminTelegram = (currentBotPricing.adminTelegram || 'KEMBOREY').replace(/^@/, '').trim();
+  const telegramBotUrl = `https://t.me/${botUsername}?start=reset_${resetToken}`;
+
+  // Non-blocking background email attempt (if local or unblocked SMTP)
   sendOtpEmail(cleanEmail, otp, user.name).catch(e => console.warn('[Email BG error]', e.message));
 
-  // Immediate response so the client UI never hangs
   res.json({
     success: true,
     sent: true,
-    message: `បានបង្កើតលេខកូដសម្ងាត់ OTP ៦ ខ្ទង់រួចរាល់!`,
-    backupOtp: otp
+    message: `សូមចុចបើក Telegram Bot ដើម្បីទទួលលេខកូដសម្ងាត់ OTP ៦ ខ្ទង់របស់អ្នក!`,
+    telegramBotUrl,
+    adminTelegram
   });
 });
 
@@ -2853,7 +2868,29 @@ async function pollTelegramBot() {
 
             if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'price') {
               const parts = text.split(' ');
-              const param = parts[1] || '';
+              const param = (parts[1] || '').trim();
+
+              // Handle 1-Click Password Reset via Telegram Bot
+              if (param.startsWith('reset_')) {
+                const token = param.replace(/^reset_/, '').trim();
+                const tokenData = telegramResetTokens.get(token);
+                if (tokenData && Date.now() <= tokenData.expiresAt) {
+                  let otpReply = `🔐 <b>លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់ (AC-Kahoot!)</b>\n\n`;
+                  otpReply += `សួស្តី <b>${tokenData.userName || senderName}</b>! 🙏\n`;
+                  otpReply += `អ្នកបានស្នើសុំប្តូរលេខសម្ងាត់សម្រាប់គណនី៖\n<code>${tokenData.email}</code>\n\n`;
+                  otpReply += `🔑 <b>លេខកូដផ្ទៀងផ្ទាត់ OTP ៦ ខ្ទង់របស់អ្នកគឺ៖</b>\n\n`;
+                  otpReply += `👉 <b><code>${tokenData.otp}</code></b> 👈\n\n`;
+                  otpReply += `⏱️ <i>លេខកូដនេះមានសុពលភាពរយៈពេល ១៥ នាទី។ សូមចម្លងលេខកូដនេះទៅបំពេញលើផ្ទាំង Reset Password ក្នុងកម្មវិធី។</i>\n\n`;
+                  otpReply += `⚠️ <i>ប្រសិនបើអ្នកមិនបានស្នើសុំទេ សូមកុំចែករំលែកលេខកូដនេះទៅកាន់អ្នកណាឡើយ។</i>`;
+
+                  await sendTelegramMessage(chatId, otpReply, 'HTML');
+                  continue;
+                } else {
+                  await sendTelegramMessage(chatId, `⚠️ <b>តំណភ្ជាប់នេះបានផុតកំណត់ ឬមិនត្រឹមត្រូវឡើយ!</b>\nសូមចូលទៅកាន់កម្មវិធី ហើយស្នើសុំលេខកូដប្តូរលេខសម្ងាត់ម្តងទៀត។`, 'HTML');
+                  continue;
+                }
+              }
+
               let hwid = param.replace(/^EMAIL_/i, '').trim();
               if (hwid.toUpperCase() === 'BUY_LICENSE') hwid = '';
               if (!hwid && extractedHwid) hwid = extractedHwid;
