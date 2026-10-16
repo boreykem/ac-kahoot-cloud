@@ -27,7 +27,7 @@
 ---
 
 ## ⚙️ ការកំណត់ Environment Variables (ប្រសិនបើចង់ដាក់ក្នុង Cloud Dashboard)
-- `TELEGRAM_BOT_TOKEN`: `8884699311:AAF5BsKkpkyNkY8PRvQaKrUoSIQqsYYXf6g`
+- `TELEGRAM_BOT_TOKEN`: `(កំណត់ក្នុង Render Environment Variables)`
 - `TELEGRAM_BOT_USERNAME`: `ac_mart_programer_developer_bot`
 - `PORT`: `8080` (ឬ Render ផ្តល់ជូនស្វ័យប្រវត្តិ)
 
