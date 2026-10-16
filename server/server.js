@@ -506,7 +506,7 @@ function saveQuizzes(quizzes) {
 
 // Auth Endpoints
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, password, school, avatar, licenseKey } = req.body;
+  const { name, email, password, school, avatar, licenseKey, phone } = req.body;
   const cleanName = (name || '').trim();
   const cleanEmail = (email || '').toLowerCase().trim();
   const cleanPassword = (password || '').trim();
@@ -543,6 +543,7 @@ app.post('/api/auth/register', async (req, res) => {
     name: cleanName,
     email: cleanEmail,
     password: cleanPassword,
+    phone: (phone || '').trim(),
     school: (school || '').trim() || 'គ្រឹះស្ថានអប់រំកម្ពុជា',
     avatar: avatar || '👨‍🏫',
     role: 'teacher',
@@ -746,6 +747,16 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     expiresAt: Date.now() + 15 * 60 * 1000
   });
 
+  // Persist to MongoDB on User document for cross-service and multi-instance persistence
+  try {
+    user.resetOtp = otp;
+    user.resetOtpExpires = new Date(Date.now() + 15 * 60 * 1000);
+    user.resetToken = resetToken;
+    await user.save();
+  } catch (e) {
+    console.warn('[MongoDB User Reset Save Error]:', e.message);
+  }
+
   currentBotPricing = loadBotPricing();
   const botUsername = (currentBotPricing.botUsername || process.env.TELEGRAM_BOT_USERNAME || 'ac_mart_programer_developer_bot').replace(/^@/, '').trim();
   const adminTelegram = (currentBotPricing.adminTelegram || 'KEMBOREY').replace(/^@/, '').trim();
@@ -763,6 +774,36 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   });
 });
 
+// Endpoint for Cloud Telegram Bot to fetch OTP by reset token
+app.get('/api/auth/telegram-reset/:token', async (req, res) => {
+  const { token } = req.params;
+  if (!token) return res.status(400).json({ success: false, message: 'Missing token' });
+
+  // 1. Check in-memory map
+  const memData = telegramResetTokens.get(token);
+  if (memData && Date.now() <= memData.expiresAt) {
+    return res.json({ success: true, ...memData });
+  }
+
+  // 2. Check MongoDB User
+  try {
+    const user = await User.findOne({ resetToken: token, resetOtpExpires: { $gt: new Date() } });
+    if (user && user.resetOtp) {
+      return res.json({
+        success: true,
+        email: user.email,
+        otp: user.resetOtp,
+        userName: user.name,
+        expiresAt: user.resetOtpExpires.getTime()
+      });
+    }
+  } catch (e) {
+    console.warn('[telegram-reset lookup error]', e.message);
+  }
+
+  return res.status(404).json({ success: false, message: 'Invalid or expired token' });
+});
+
 // Verify OTP & Set New Password
 app.post('/api/auth/verify-reset-otp', async (req, res) => {
   const { email, otp, newPassword } = req.body;
@@ -770,18 +811,30 @@ app.post('/api/auth/verify-reset-otp', async (req, res) => {
     return res.status(400).json({ success: false, message: 'សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់!' });
   }
 
-  const record = resetOtpMap.get(email.toLowerCase().trim());
-  if (!record || record.otp !== otp.trim() || Date.now() > record.expiresAt) {
-    return res.status(400).json({ success: false, message: 'លេខកូដ OTP មិនត្រឹមត្រូវ ឬបានផុតកំណត់ (១៥ នាទី)!' });
-  }
-
   const cleanEmail = email.toLowerCase().trim();
+  const cleanOtp = otp.trim();
   const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
   if (!user) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
   }
 
+  const record = resetOtpMap.get(cleanEmail);
+  let valid = false;
+  if (record && record.otp === cleanOtp && Date.now() <= record.expiresAt) {
+    valid = true;
+  }
+  if (!valid && user.resetOtp === cleanOtp && user.resetOtpExpires && new Date() <= user.resetOtpExpires) {
+    valid = true;
+  }
+
+  if (!valid) {
+    return res.status(400).json({ success: false, message: 'លេខកូដ OTP មិនត្រឹមត្រូវ ឬបានផុតកំណត់ (១៥ នាទី)!' });
+  }
+
   user.password = newPassword.trim();
+  user.resetOtp = null;
+  user.resetOtpExpires = null;
+  user.resetToken = null;
   await user.save();
   resetOtpMap.delete(cleanEmail);
 

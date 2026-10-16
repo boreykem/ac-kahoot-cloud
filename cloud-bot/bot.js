@@ -251,7 +251,44 @@ async function pollTelegramBot() {
 
           if (text.startsWith('/start') || text.toLowerCase() === 'menu' || text.toLowerCase() === 'price') {
             const parts = text.split(' ');
-            const param = parts[1] || '';
+            const param = (parts[1] || '').trim();
+
+            // Handle 1-Click Password Reset OTP via Telegram Bot
+            if (param.startsWith('reset_')) {
+              const resetToken = param.replace(/^reset_/, '').trim();
+              let tokenData = null;
+
+              try {
+                const mainUrl = process.env.MAIN_SERVER_URL || 'https://ac-kahoot.onrender.com';
+                const tRes = await fetch(`${mainUrl}/api/auth/telegram-reset/${resetToken}`, {
+                  headers: { 'Accept': 'application/json' },
+                  signal: AbortSignal.timeout(6000)
+                });
+                if (tRes.ok) {
+                  const json = await tRes.json();
+                  if (json.success && json.otp) tokenData = json;
+                }
+              } catch (err) {
+                console.warn('[Cloud Bot Reset API Error]:', err.message);
+              }
+
+              if (tokenData) {
+                let otpReply = `🔐 <b>លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់ (AC-Kahoot!)</b>\n\n`;
+                otpReply += `សួស្តី <b>${tokenData.userName || senderName}</b>! 🙏\n`;
+                otpReply += `អ្នកបានស្នើសុំប្តូរលេខសម្ងាត់សម្រាប់គណនី៖\n<code>${tokenData.email}</code>\n\n`;
+                otpReply += `🔑 <b>លេខកូដផ្ទៀងផ្ទាត់ OTP ៦ ខ្ទង់របស់អ្នកគឺ៖</b>\n\n`;
+                otpReply += `👉 <b><code>${tokenData.otp}</code></b> 👈\n\n`;
+                otpReply += `⏱️ <i>លេខកូដនេះមានសុពលភាពរយៈពេល ១៥ នាទី។ សូមចម្លងលេខកូដនេះទៅបំពេញលើផ្ទាំង Reset Password ក្នុងកម្មវិធី។</i>\n\n`;
+                otpReply += `⚠️ <i>ប្រសិនបើអ្នកមិនបានស្នើសុំទេ សូមកុំចែករំលែកលេខកូដនេះទៅកាន់អ្នកណាឡើយ។</i>`;
+
+                await sendTelegramMessage(chatId, otpReply, 'HTML');
+                continue;
+              } else {
+                await sendTelegramMessage(chatId, `⚠️ <b>តំណភ្ជាប់នេះបានផុតកំណត់ ឬមិនត្រឹមត្រូវឡើយ!</b>\nសូមចូលទៅកាន់កម្មវិធី ហើយស្នើសុំលេខកូដប្តូរលេខសម្ងាត់ម្តងទៀត។`, 'HTML');
+                continue;
+              }
+            }
+
             let hwid = param.replace(/^HWID_/i, '').trim();
             if (hwid.toUpperCase() === 'BUY_LICENSE') hwid = '';
             if (!hwid && extractedHwid) hwid = extractedHwid;

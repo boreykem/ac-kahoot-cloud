@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Lock, Mail, User, School, LogIn, UserPlus, 
   KeyRound, ArrowLeft, Send, CheckCircle2, 
-  ShieldAlert, Eye, EyeOff
+  ShieldAlert, Eye, EyeOff, Phone
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sound } from '../utils/audioEngine';
@@ -22,6 +22,7 @@ export default function AuthModal({
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [school, setSchool] = useState('');
   const [avatar, setAvatar] = useState('👨‍🏫');
   const [loading, setLoading] = useState(false);
@@ -103,7 +104,8 @@ export default function AuthModal({
           email, 
           password, 
           school, 
-          avatar
+          avatar,
+          phone
         })
       });
       const data = await res.json();
@@ -194,7 +196,6 @@ export default function AuthModal({
           setTab('login');
           setForgotStep(1);
           setOtpCode('');
-          setBackupOtp('');
           setResetNewPassword('');
           setResetConfirmPassword('');
           setSuccessMsg('🎉 បានប្តូរលេខសម្ងាត់ថ្មីជោគជ័យ! សូម Login ឥឡូវនេះ។');
@@ -411,6 +412,22 @@ export default function AuthModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="yourname@gmail.com"
+                    className="w-full bg-black/50 border border-white/20 rounded-xl pl-10 pr-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-purple-200 mb-1">
+                  លេខទូរស័ព្ទ (Phone Number) <span className="text-gray-400 font-normal">(ស្រេចចិត្ត / Optional)</span>
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="012 345 678"
                     className="w-full bg-black/50 border border-white/20 rounded-xl pl-10 pr-3.5 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
                   />
                 </div>
