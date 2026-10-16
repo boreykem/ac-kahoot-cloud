@@ -31,6 +31,34 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
 
   const isFree = !currentUser || currentUser.license === 'free';
 
+  const isLocalHost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  // Filter out invalid/internal container IP URLs like 10.x.x.x:10000
+  const isInvalidInternalUrl = (url) => {
+    if (!url) return true;
+    return url.includes('10.30.') || 
+           url.includes(':10000') || 
+           (!isLocalHost && (url.includes('localhost') || url.includes('127.0.0.1')));
+  };
+
+  const getEffectiveJoinUrl = () => {
+    if (!isLocalHost) {
+      // In cloud / public production (e.g. Render), always join via current web origin
+      return `${window.location.origin}/?pin=${pin}`;
+    }
+    if (use4G && publicJoinUrl && !isInvalidInternalUrl(publicJoinUrl)) {
+      return publicJoinUrl;
+    }
+    if (joinUrl && !isInvalidInternalUrl(joinUrl)) {
+      return joinUrl;
+    }
+    return `${window.location.origin}/?pin=${pin}`;
+  };
+
+  const effectiveJoinUrl = getEffectiveJoinUrl();
+  const displayHostUrl = !isLocalHost ? window.location.origin : (effectiveJoinUrl.split('?')[0]);
+
   const pinRef = useRef(pin);
   pinRef.current = pin;
 
@@ -105,7 +133,8 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
     socket.emit('host:create-room', { 
       quiz, 
       level, 
-      hostLicense: currentUser?.license || 'free' 
+      hostLicense: currentUser?.license || 'free',
+      clientOrigin: window.location.origin
     });
 
     socket.on('host:room-created', (data) => {
@@ -232,9 +261,9 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
     };
   }, []);
 
-  // Auto-fetch 4G public URL if not ready when room was first created
+  // Auto-fetch 4G public URL if not ready when room was first created (local server only)
   useEffect(() => {
-    if (publicJoinUrl || !pin) return;
+    if (publicJoinUrl || !pin || !isLocalHost) return;
 
     let attempts = 0;
     const interval = setInterval(async () => {
@@ -251,7 +280,7 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [publicJoinUrl, pin]);
+  }, [publicJoinUrl, pin, isLocalHost]);
 
   // Question Countdown Timer & In-Game Thinking Music
   useEffect(() => {
@@ -384,8 +413,8 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
         {/* Center PIN & QR Banner */}
         <div className="max-w-4xl mx-auto w-full my-6 flex flex-col md:flex-row items-center justify-center gap-8 glass-panel p-8 sm:p-12 rounded-3xl border border-white/20 shadow-2xl shadow-purple-950/80 relative">
           
-          {/* Network Toggle Button (Top Right of Banner) */}
-          {publicJoinUrl && (
+          {/* Network Toggle Button (Top Right of Banner - Local server only) */}
+          {publicJoinUrl && isLocalHost && (
             <div className="absolute top-4 right-4 flex items-center bg-black/40 rounded-full p-1 border border-white/10 shadow-inner">
               <button
                 onClick={() => { sound.playClick(); setUse4G(false); }}
@@ -411,13 +440,15 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
           {/* QR Code */}
           <div className="bg-white p-4 rounded-2xl shadow-2xl flex flex-col items-center gap-2 mt-4 md:mt-0">
             <QRCodeSVG 
-              value={(use4G && publicJoinUrl) ? publicJoinUrl : (joinUrl || `${window.location.origin}/?pin=${pin}`)} 
+              value={effectiveJoinUrl} 
               size={175} 
               level="M"
               includeMargin={true}
             />
             <span className={`text-[11px] font-bold tracking-tight ${use4G ? 'text-fuchsia-700' : 'text-cyan-700'}`}>
-              Scan {use4G ? 'ដោយប្រើ 4G (ទូរស័ព្ទដៃ)' : 'តាម WiFi សាលា'}
+              {!isLocalHost 
+                ? 'Scan ដើម្បីចូលលេង (Scan to Join)' 
+                : (use4G ? 'Scan ដោយប្រើ 4G (ទូរស័ព្ទដៃ)' : 'Scan តាម WiFi សាលា')}
             </span>
           </div>
 
@@ -426,7 +457,7 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
             <p className="text-purple-200 text-sm font-semibold tracking-wider">
               ចូលតាម Browser: <br/>
               <span className={`font-bold underline ${use4G ? 'text-fuchsia-300' : 'text-cyan-300'} text-xs sm:text-sm break-all`}>
-                {(use4G && publicJoinUrl) ? publicJoinUrl.split('?')[0] : (joinUrl ? joinUrl.split('?')[0] : window.location.host)}
+                {displayHostUrl}
               </span>
             </p>
             <div>

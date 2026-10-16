@@ -864,17 +864,27 @@ app.delete('/api/admin/users/:id', verifyToken, isAdmin, async (req, res) => {
 
 // Network info endpoint for game lobbies and QR codes
 app.get('/api/network-info', (req, res) => {
+  let effectivePublicUrl = publicUrl;
+  if (!effectivePublicUrl && process.env.RENDER_EXTERNAL_URL) {
+    effectivePublicUrl = process.env.RENDER_EXTERNAL_URL;
+  } else if (!effectivePublicUrl && req.headers.host && !req.headers.host.includes('localhost') && !req.headers.host.includes('127.0.0.1')) {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    effectivePublicUrl = `${proto}://${req.headers.host}`;
+  }
+
   const ip = getLocalIpAddress();
   const port = process.env.PORT || 3333;
+  const isCloud = !!effectivePublicUrl;
+
   res.json({
     success: true,
-    ip,
+    ip: isCloud ? effectivePublicUrl : ip,
     localIp: ip,
     port,
-    localUrl: `http://${ip}:${port}`,
-    joinUrl: `http://${ip}:${port}/?join=true`,
-    publicUrl: publicUrl ? `${publicUrl}/?join=true` : null,
-    rawPublicUrl: publicUrl || null
+    localUrl: isCloud ? effectivePublicUrl : `http://${ip}:${port}`,
+    joinUrl: isCloud ? `${effectivePublicUrl}/?join=true` : `http://${ip}:${port}/?join=true`,
+    publicUrl: effectivePublicUrl ? `${effectivePublicUrl}/?join=true` : null,
+    rawPublicUrl: effectivePublicUrl || null
   });
 });
 
@@ -1896,9 +1906,29 @@ io.on('connection', (socket) => {
     });
 
     socket.join(`room:${pin}`);
-    const hostJoinUrl = (clientOrigin && !clientOrigin.includes('localhost') && !clientOrigin.includes('127.0.0.1'))
-      ? `${clientOrigin}/?pin=${pin}`
+
+    // Determine public/client origin for joining room
+    let effectiveOrigin = clientOrigin;
+    if (!effectiveOrigin || effectiveOrigin.includes('localhost') || effectiveOrigin.includes('127.0.0.1')) {
+      if (process.env.RENDER_EXTERNAL_URL) {
+        effectiveOrigin = process.env.RENDER_EXTERNAL_URL;
+      } else if (socket.handshake?.headers?.origin && !socket.handshake.headers.origin.includes('localhost') && !socket.handshake.headers.origin.includes('127.0.0.1')) {
+        effectiveOrigin = socket.handshake.headers.origin;
+      } else if (socket.handshake?.headers?.host && !socket.handshake.headers.host.includes('localhost') && !socket.handshake.headers.host.includes('127.0.0.1')) {
+        const proto = socket.handshake.headers['x-forwarded-proto'] || 'https';
+        effectiveOrigin = `${proto}://${socket.handshake.headers.host}`;
+      }
+    }
+
+    const isPublicHost = effectiveOrigin && !effectiveOrigin.includes('localhost') && !effectiveOrigin.includes('127.0.0.1');
+
+    const hostJoinUrl = isPublicHost
+      ? `${effectiveOrigin}/?pin=${pin}`
       : `http://${getLocalIpAddress()}:${process.env.PORT || 3333}/?pin=${pin}`;
+
+    const hostPublicJoinUrl = publicUrl 
+      ? `${publicUrl}/?pin=${pin}` 
+      : (isPublicHost ? `${effectiveOrigin}/?pin=${pin}` : null);
 
     socket.emit('host:room-created', {
       pin,
@@ -1906,7 +1936,7 @@ io.on('connection', (socket) => {
       quizTitle: quiz.title,
       totalQuestions: quiz.questions.length,
       joinUrl: hostJoinUrl,
-      publicJoinUrl: publicUrl ? `${publicUrl}/?pin=${pin}` : (clientOrigin && !clientOrigin.includes('localhost') && !clientOrigin.includes('127.0.0.1') ? `${clientOrigin}/?pin=${pin}` : null)
+      publicJoinUrl: hostPublicJoinUrl
     });
     console.log(`[Host] Room created: ${pin} (${quiz.title}) | URL: ${hostJoinUrl}`);
   });
