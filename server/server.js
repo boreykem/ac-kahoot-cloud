@@ -2877,13 +2877,6 @@ async function pollTelegramBot() {
     return;
   }
 
-  // If 24/7 Render Cloud Bot is active, let Cloud handle Telegram to avoid duplicate replies
-  const cloudActive = await checkCloudBotStatus();
-  if (cloudActive) {
-    setTimeout(pollTelegramBot, 30000);
-    return;
-  }
-
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${lastTelegramUpdateId + 1}&timeout=10`);
     if (res.ok) {
