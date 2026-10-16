@@ -164,8 +164,13 @@ export default function AuthModal({
 
   const handleVerifyOtpAndReset = async (e) => {
     e?.preventDefault();
-    if (!otpCode || !resetNewPassword) {
+    const cleanOtp = (otpCode || '').trim();
+    if (!cleanOtp || !resetNewPassword) {
       setError('សូមបញ្ចូលលេខកូដ OTP និងលេខសម្ងាត់ថ្មី!');
+      return;
+    }
+    if (cleanOtp.length !== 6) {
+      setError(`សូមបញ្ចូលលេខកូដ OTP ឱ្យគ្រប់ ៦ ខ្ទង់! (លោកគ្រូបានវាយតែ ${cleanOtp.length} ខ្ទង់ទេ)`);
       return;
     }
     if (resetNewPassword !== resetConfirmPassword) {
