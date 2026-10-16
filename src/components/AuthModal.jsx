@@ -32,6 +32,7 @@ export default function AuthModal({
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotEmail, setForgotEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [backupOtp, setBackupOtp] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
 
@@ -145,6 +146,10 @@ export default function AuthModal({
       if (data.success) {
         sound.playCorrect();
         setSuccessMsg(data.message);
+        if (data.backupOtp) {
+          setBackupOtp(data.backupOtp);
+          setOtpCode(data.backupOtp);
+        }
         setForgotStep(2);
       } else {
         setError(data.message || 'មិនអាចផ្ញើលេខកូដបានទេ');
@@ -190,6 +195,7 @@ export default function AuthModal({
           setTab('login');
           setForgotStep(1);
           setOtpCode('');
+          setBackupOtp('');
           setResetNewPassword('');
           setResetConfirmPassword('');
           setSuccessMsg('🎉 បានប្តូរលេខសម្ងាត់ថ្មីជោគជ័យ! សូម Login ឥឡូវនេះ។');
@@ -479,6 +485,26 @@ export default function AuthModal({
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOtpAndReset} className="space-y-3.5">
+                  {backupOtp && (
+                    <div className="bg-amber-500/15 border border-amber-400/40 rounded-xl p-3 text-xs text-amber-200 flex items-center justify-between shadow-lg">
+                      <div>
+                        <span className="font-semibold block text-yellow-300 text-[11px]">លេខកូដ OTP បម្រុង (Backup Code)៖</span>
+                        <span className="font-mono text-xl font-black text-yellow-400 tracking-widest">{backupOtp}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOtpCode(backupOtp)}
+                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] rounded-lg shadow transition-all cursor-pointer"
+                      >
+                        បំពេញលេខកូដ
+                      </button>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-purple-300/80 text-center leading-relaxed">
+                    💡 ប្រសិនបើមិនឃើញសារក្នុង Inbox សូមពិនិត្យមើលក្នុងប្រអប់ <strong>Spam / Junk Mail</strong>។
+                  </p>
+
                   <div>
                     <label className="block text-xs font-bold text-yellow-300 mb-1">លេខកូដ OTP ៦ ខ្ទង់</label>
                     <input

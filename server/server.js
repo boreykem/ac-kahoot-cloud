@@ -669,18 +669,21 @@ app.post('/api/auth/update-profile', async (req, res) => {
 // In-memory OTP Store for Password Reset
 const resetOtpMap = new Map();
 
+const SMTP_USER = process.env.SMTP_USER || 'baureykem@gmail.com';
+const SMTP_PASS = process.env.SMTP_PASS || 'mbqpwcsjlautnufn';
+
 async function sendOtpEmail(targetEmail, otpCode, userName) {
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  if (SMTP_USER && SMTP_PASS) {
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
+          user: SMTP_USER,
+          pass: SMTP_PASS
         }
       });
       await transporter.sendMail({
-        from: `"AC-Kahoot! Security" <${process.env.SMTP_USER}>`,
+        from: `"AC-Kahoot! Security" <${SMTP_USER}>`,
         to: targetEmail,
         subject: `[AC-Kahoot!] លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់របស់អ្នក៖ ${otpCode}`,
         html: `
@@ -696,9 +699,10 @@ async function sendOtpEmail(targetEmail, otpCode, userName) {
         `
       });
       console.log(`[Email] OTP sent successfully to ${targetEmail}`);
-      return true;
+      return { sent: true };
     } catch (err) {
       console.error("[Email] SMTP send error:", err);
+      return { sent: false, error: err.message };
     }
   }
 
@@ -707,7 +711,7 @@ async function sendOtpEmail(targetEmail, otpCode, userName) {
   console.log(`🔑 [AC-Kahoot! OTP] Password Reset for: ${targetEmail}`);
   console.log(`👉 OTP Code: ${otpCode} (Valid for 15 mins)`);
   console.log(`======================================================\n`);
-  return false;
+  return { sent: false, error: 'No SMTP credentials' };
 }
 
 // Request Password Reset OTP
@@ -724,17 +728,20 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  resetOtpMap.set(email.toLowerCase().trim(), {
+  resetOtpMap.set(cleanEmail, {
     otp,
     expiresAt: Date.now() + 15 * 60 * 1000 // 15 mins
   });
 
-  const sent = await sendOtpEmail(email, otp, user.name);
+  const otpResult = await sendOtpEmail(cleanEmail, otp, user.name);
 
   res.json({
     success: true,
-    message: `បានផ្ញើលេខកូដសម្ងាត់ ៦ ខ្ទង់ទៅកាន់ ${email} រួចរាល់!`,
-    backupOtp: sent ? undefined : otp // for offline backup demonstration
+    sent: otpResult.sent,
+    message: otpResult.sent 
+      ? `បានផ្ញើលេខកូដសម្ងាត់ ៦ ខ្ទង់ទៅកាន់ ${cleanEmail} រួចរាល់! (សូមពិនិត្យមើលក្នុងប្រអប់ Inbox ឬ Spam)`
+      : `ប្រព័ន្ធបានបង្កើតលេខកូដសម្ងាត់ OTP ៦ ខ្ទង់រួចរាល់!`,
+    backupOtp: otp
   });
 });
 
