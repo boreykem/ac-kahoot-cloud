@@ -13,8 +13,12 @@ import LicenseTopBanner from './components/LicenseTopBanner.jsx';
 import PricingModal from './components/PricingModal.jsx';
 import { getSavedAccounts, saveAccount, removeSavedAccount } from './utils/accountManager.js';
 
-// Connect to Socket.io backend
-const socket = io();
+// Connect to Socket.io backend (automatically route to Render backend if served from Cloudflare Pages)
+const BACKEND_URL = (typeof window !== 'undefined' && window.location.hostname.includes('pages.dev'))
+  ? 'https://ac-kahoot.onrender.com'
+  : (import.meta.env.VITE_BACKEND_URL || undefined);
+
+const socket = io(BACKEND_URL);
 
 export default function App() {
   const [currentView, setView] = useState('home'); // home, host, player-join, editor
