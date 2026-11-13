@@ -261,7 +261,10 @@ async function pollTelegramBot() {
               try {
                 const mainUrl = process.env.MAIN_SERVER_URL || 'https://AC-GAME.onrender.com';
                 const tRes = await fetch(`${mainUrl}/api/auth/telegram-reset/${resetToken}`, {
-                  headers: { 'Accept': 'application/json' },
+                  headers: { 
+                    'Accept': 'application/json',
+                    'x-bot-token': BOT_TOKEN
+                  },
                   signal: AbortSignal.timeout(6000)
                 });
                 if (tRes.ok) {

@@ -84,8 +84,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     }
     return {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...(currentUser?.email ? { 'x-admin-email': currentUser.email } : { 'x-admin-email': 'baureykem@gmail.com' })
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
   };
 

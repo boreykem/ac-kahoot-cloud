@@ -225,52 +225,33 @@ const httpServer = createServer(app);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ac-kahoot-super-secret-key-2026';
 
-// JWT Verification Middleware
+// JWT Verification Middleware (Cryptographic Token Required)
 export const verifyToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  let token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token && req.headers['x-admin-email']) {
-    try {
-      const cleanEmail = (req.headers['x-admin-email'] || '').toLowerCase().trim();
-      const adminUser = await User.findOne({ email: cleanEmail });
-      if (adminUser && adminUser.role === 'superadmin') {
-        req.user = adminUser.toObject ? adminUser.toObject() : adminUser;
-        return next();
-      }
-    } catch (_) {}
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Missing authentication token' });
   }
-
-  if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = await getValidatedUser(decoded.id, decoded.email);
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Invalid or expired user' });
+      return res.status(401).json({ success: false, message: 'Invalid or expired user session' });
     }
     next();
   } catch (err) {
-    if (req.headers['x-admin-email']) {
-      try {
-        const cleanEmail = (req.headers['x-admin-email'] || '').toLowerCase().trim();
-        const adminUser = await User.findOne({ email: cleanEmail });
-        if (adminUser && adminUser.role === 'superadmin') {
-          req.user = adminUser.toObject ? adminUser.toObject() : adminUser;
-          return next();
-        }
-      } catch (_) {}
-    }
-    return res.status(403).json({ success: false, message: 'Invalid token' });
+    return res.status(403).json({ success: false, message: 'Invalid or expired token' });
   }
 };
 
-// Admin Protection Middleware
+// Admin Protection Middleware (Strict Superadmin Check)
 export const isAdmin = (req, res, next) => {
   if (req.user && req.user.role === 'superadmin') {
     next();
   } else {
-    return res.status(403).json({ success: false, message: 'Access denied: Admin only' });
+    return res.status(403).json({ success: false, message: 'Access denied: Super Admin only' });
   }
 };
 
@@ -598,16 +579,9 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ success: true, user: safeUser, token });
 });
 
-// Auto Refresh / Restore Token for Super Admin
-app.post('/api/auth/token-refresh', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
-  const cleanEmail = email.toLowerCase().trim();
-  const user = await User.findOne({ email: cleanEmail });
-  if (!user || user.role !== 'superadmin') {
-    return res.status(403).json({ success: false, message: 'Unauthorized' });
-  }
-  const safeUser = user.toObject();
+// Refresh / Restore Token for Super Admin (Requires existing valid session)
+app.post('/api/auth/token-refresh', verifyToken, isAdmin, async (req, res) => {
+  const safeUser = req.user.toObject ? req.user.toObject() : { ...req.user };
   delete safeUser.password;
   const token = jwt.sign({ id: safeUser.id, email: safeUser.email, role: safeUser.role }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ success: true, token, user: safeUser });
@@ -615,57 +589,75 @@ app.post('/api/auth/token-refresh', async (req, res) => {
 
 // Get Current User Profile (Fresh fetch) - Protected by JWT
 app.get('/api/auth/me', verifyToken, async (req, res) => {
-  // req.user is populated by verifyToken
   if (!req.user) {
     return res.status(404).json({ success: false, message: 'User not found' });
   }
 
-  const safeUser = req.user.toObject();
+  const safeUser = req.user.toObject ? req.user.toObject() : { ...req.user };
   delete safeUser.password;
   res.json({ success: true, user: safeUser });
 });
 
-// Change Password Endpoint (for logged-in user or master admin)
-app.post('/api/auth/change-password', async (req, res) => {
+// Change Password Endpoint (Protected by JWT)
+app.post('/api/auth/change-password', verifyToken, async (req, res) => {
   const { userId, currentPassword, newPassword } = req.body;
   if (!userId || !newPassword) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូលលេខសម្ងាត់ថ្មី!' });
   }
+
+  // Only the user themselves or superadmin can change the password
+  if (req.user.id !== userId && req.user.role !== 'superadmin') {
+    return res.status(403).json({ success: false, message: 'Access denied: You cannot change another user\'s password' });
+  }
+
   const user = await User.findOne({ id: userId });
   if (!user) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
   }
-  if (currentPassword && user.password !== currentPassword.trim()) {
-    return res.status(400).json({ success: false, message: 'លេខសម្ងាត់ចាស់មិនត្រឹមត្រូវឡើយ!' });
+
+  // Current password is REQUIRED unless Super Admin is resetting someone else's password
+  const isSuperAdminResettingOther = req.user.role === 'superadmin' && req.user.id !== userId;
+  if (!isSuperAdminResettingOther) {
+    if (!currentPassword || user.password !== currentPassword.trim()) {
+      return res.status(400).json({ success: false, message: 'លេខសម្ងាត់ចាស់មិនត្រឹមត្រូវឡើយ!' });
+    }
   }
+
   user.password = newPassword.trim();
   await user.save();
   res.json({ success: true, message: 'បានប្តូរលេខសម្ងាត់ថ្មីដោយជោគជ័យ!' });
 });
 
-// Update Profile & Password Endpoint (for teachers and users)
-app.post('/api/auth/update-profile', async (req, res) => {
+// Update Profile & Password Endpoint (Protected by JWT)
+app.post('/api/auth/update-profile', verifyToken, async (req, res) => {
   const { userId, name, school, avatar, currentPassword, newPassword } = req.body;
   if (!userId) return res.status(400).json({ success: false, message: 'User ID is required' });
   
+  if (req.user.id !== userId && req.user.role !== 'superadmin') {
+    return res.status(403).json({ success: false, message: 'Access denied: Unauthorized to edit this profile' });
+  }
+
   const user = await User.findOne({ id: userId });
   if (!user) return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
 
   if (newPassword) {
-    if (currentPassword && user.password !== currentPassword.trim()) {
-      return res.status(400).json({ success: false, message: 'លេខសម្ងាត់ចាស់មិនត្រឹមត្រូវឡើយ!' });
+    const isSuperAdminResettingOther = req.user.role === 'superadmin' && req.user.id !== userId;
+    if (!isSuperAdminResettingOther) {
+      if (!currentPassword || user.password !== currentPassword.trim()) {
+        return res.status(400).json({ success: false, message: 'លេខសម្ងាត់ចាស់មិនត្រឹមត្រូវឡើយ!' });
+      }
     }
     user.password = newPassword.trim();
   }
 
-  if (name) user.name = name;
-  if (school) user.school = school;
-  if (avatar) user.avatar = avatar;
+  if (name) user.name = name.trim();
+  if (school) user.school = school.trim();
+  if (avatar) user.avatar = avatar.trim();
 
   await user.save();
   const safeUser = user.toObject();
   delete safeUser.password;
-  res.json({ success: true, user: safeUser, message: 'បានកែប្រែព័ត៌មាន និងលេខសម្ងាត់ដោយជោគជ័យ!' });
+  res.json({ success: true, user: safeUser, message: 'បានកែប្រែព័ត៌មានដោយជោគជ័យ!' });
 });
 
 // In-memory OTP Store for Password Reset
@@ -775,10 +767,30 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   });
 });
 
-// Endpoint for Cloud Telegram Bot to fetch OTP by reset token
+// Endpoint for Cloud Telegram Bot to fetch OTP by reset token (Protected)
 app.get('/api/auth/telegram-reset/:token', async (req, res) => {
   const { token } = req.params;
   if (!token) return res.status(400).json({ success: false, message: 'Missing token' });
+
+  // Security Verification: Require valid bot token or Super Admin session
+  const botTokenHeader = req.headers['x-bot-token'];
+  const expectedToken = (currentBotPricing.botToken || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const isAuthorizedBot = botTokenHeader && expectedToken && botTokenHeader === expectedToken;
+
+  if (!isAuthorizedBot) {
+    const authHeader = req.headers['authorization'];
+    const bearer = authHeader && authHeader.split(' ')[1];
+    let isSuperAdmin = false;
+    if (bearer) {
+      try {
+        const decoded = jwt.verify(bearer, JWT_SECRET);
+        isSuperAdmin = decoded && decoded.role === 'superadmin';
+      } catch (_) {}
+    }
+    if (!isSuperAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied: Unauthorized to read OTP' });
+    }
+  }
 
   // 1. Check in-memory map
   const memData = telegramResetTokens.get(token);
@@ -1335,14 +1347,11 @@ async function getValidatedUser(userId, userEmail) {
   return user;
 }
 
-// Save User's Gemini API Key to database
-app.post('/api/user/save-gemini-key', async (req, res) => {
-  const { userId, userEmail, apiKey } = req.body;
-  if (!userId && !userEmail) return res.status(400).json({ success: false, message: 'Missing user identifier' });
-  const user = await getValidatedUser(userId, userEmail);
-  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-  user.geminiApiKey = (apiKey || '').trim();
-  await user.save();
+// Save User's Gemini API Key to database (Protected by JWT)
+app.post('/api/user/save-gemini-key', verifyToken, async (req, res) => {
+  const { apiKey } = req.body;
+  req.user.geminiApiKey = (apiKey || '').trim();
+  await req.user.save();
   res.json({ success: true, message: 'API Key saved to your profile' });
 });
 
@@ -1380,20 +1389,18 @@ app.get('/api/quizzes', async (req, res) => {
 
 app.post('/api/quizzes', async (req, res) => {
   const newQuiz = req.body;
-  let userId = req.headers['x-user-id'];
-  let userEmail = req.headers['x-user-email'];
+  let user = null;
 
-  if ((!userId || !userEmail) && req.headers.authorization?.startsWith('Bearer ')) {
+  // Cryptographically authenticate via JWT Bearer token
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
-      const token = req.headers.authorization.split(' ')[1];
+      const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
-      userId = userId || decoded.id;
-      userEmail = userEmail || decoded.email;
-    } catch {}
+      user = await getValidatedUser(decoded.id, decoded.email);
+    } catch (_) {}
   }
-  
-  // Basic Auth Check for POST
-  const user = await getValidatedUser(userId, userEmail);
+
   const isSuperAdmin = user && user.role === 'superadmin';
 
   let existingQuiz = await Quiz.findOne({ id: newQuiz.id });
@@ -1401,7 +1408,7 @@ app.post('/api/quizzes', async (req, res) => {
   // If trying to modify an existing quiz, check ownership
   if (existingQuiz) {
     if (!isSuperAdmin) {
-       // Only author can edit
+       // Only verified author can edit
        if (!user || (existingQuiz.authorEmail?.toLowerCase() !== user.email?.toLowerCase() && existingQuiz.authorId !== user.id)) {
          return res.status(403).json({ success: false, message: 'អ្នកមិនមានសិទ្ធិកែប្រែវិញ្ញាសារបស់អ្នកដទៃទេ!' });
        }
@@ -1454,15 +1461,23 @@ app.post('/api/quizzes', async (req, res) => {
 
 app.delete('/api/quizzes/:id', async (req, res) => {
   const { id } = req.params;
-  const userId = req.headers['x-user-id'];
-  const userEmail = req.headers['x-user-email'];
 
   const existingQuiz = await Quiz.findOne({ id });
   if (!existingQuiz) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញវិញ្ញាសានេះទេ!' });
   }
 
-  const user = await getValidatedUser(userId, userEmail);
+  // Authenticate user via JWT Bearer token
+  let user = null;
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      user = await getValidatedUser(decoded.id, decoded.email);
+    } catch (_) {}
+  }
+
   const isSuperAdmin = user && user.role === 'superadmin';
 
   if (!isSuperAdmin) {
@@ -2689,14 +2704,14 @@ app.get('/api/bot/config', (req, res) => {
   });
 });
 
-// Admin Get Bot & Pricing Config
-app.get('/api/admin/bot-pricing', (req, res) => {
+// Admin Get Bot & Pricing Config (Protected: Super Admin Only)
+app.get('/api/admin/bot-pricing', verifyToken, isAdmin, (req, res) => {
   currentBotPricing = loadBotPricing();
   res.json({ success: true, pricing: currentBotPricing });
 });
 
-// Admin Save Bot & Pricing Config
-app.post('/api/admin/bot-pricing', (req, res) => {
+// Admin Save Bot & Pricing Config (Protected: Super Admin Only)
+app.post('/api/admin/bot-pricing', verifyToken, isAdmin, (req, res) => {
   const { 
     botToken, 
     botUsername, 
@@ -2744,8 +2759,8 @@ app.post('/api/admin/bot-pricing', (req, res) => {
   res.json({ success: true, message: '🎉 បានរក្សាទុកការកំណត់ Telegram Bot, តម្លៃ និង KHQR ថ្មីដោយជោគជ័យ!', pricing: updated });
 });
 
-// Admin Test Bot Connection (Verify Token with getMe)
-app.post('/api/admin/bot/test-connection', async (req, res) => {
+// Admin Test Bot Connection (Protected: Super Admin Only)
+app.post('/api/admin/bot/test-connection', verifyToken, isAdmin, async (req, res) => {
   const token = (req.body.botToken || currentBotPricing.botToken || process.env.TELEGRAM_BOT_TOKEN || '').trim();
   if (!token) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូល Telegram Bot Token ជាមុនសិន!' });
@@ -2771,8 +2786,8 @@ app.post('/api/admin/bot/test-connection', async (req, res) => {
   }
 });
 
-// Admin Send Test Notification to Admin Telegram
-app.post('/api/admin/bot/send-test', async (req, res) => {
+// Admin Send Test Notification to Admin Telegram (Protected: Super Admin Only)
+app.post('/api/admin/bot/send-test', verifyToken, isAdmin, async (req, res) => {
   const chatId = req.body.adminChatId || currentBotPricing.adminChatId;
   if (!chatId) {
     return res.status(400).json({
