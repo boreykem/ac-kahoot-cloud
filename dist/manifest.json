@@ -2,23 +2,39 @@
   "name": "AC-GAME! - វេទិកាសំណួរអន្តរកម្ម & សិក្សាល្បែង",
   "short_name": "AC-GAME!",
   "description": "វេទិកាសំណួរ-ចម្លើយអន្តរកម្ម & បង្រៀនតាមបែបល្បែងកម្សាន្តឆ្លាតវៃ",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#1e073b",
   "theme_color": "#4c1d95",
+  "categories": ["education", "games"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://game-ac.pages.dev/manifest.json"
+    }
+  ],
+  "prefer_related_applications": false
 }

@@ -12,6 +12,26 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
+    <!-- Early PWA Install Handler -->
+    <script>
+      window.__pwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaPrompt = e;
+        try {
+          localStorage.removeItem('ac_game_pwa_installed');
+        } catch (err) {}
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready', { detail: e }));
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaPrompt = null;
+        try {
+          localStorage.setItem('ac_game_pwa_installed', 'true');
+        } catch (err) {}
+        window.dispatchEvent(new CustomEvent('pwa-installed'));
+      });
+    </script>
+
     <!-- Google Fonts: Kantumruy Pro & Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

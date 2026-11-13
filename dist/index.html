@@ -12,12 +12,32 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
+    <!-- Early PWA Install Handler -->
+    <script>
+      window.__pwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaPrompt = e;
+        try {
+          localStorage.removeItem('ac_game_pwa_installed');
+        } catch (err) {}
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready', { detail: e }));
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaPrompt = null;
+        try {
+          localStorage.setItem('ac_game_pwa_installed', 'true');
+        } catch (err) {}
+        window.dispatchEvent(new CustomEvent('pwa-installed'));
+      });
+    </script>
+
     <!-- Google Fonts: Kantumruy Pro & Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300..700;1,300..700&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Dos6Vu5q.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DOIGO70I.css">
+    <script type="module" crossorigin src="/assets/index-B9x5Bocx.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-D4p1oDdl.css">
   </head>
   <body class="bg-[#1e073b] text-white font-khmer antialiased select-none overflow-x-hidden min-h-screen">
     <div id="root"></div>

@@ -1,8 +1,16 @@
 import React from 'react';
-import { X, MonitorDown, Download, CheckCircle, ExternalLink, HelpCircle } from 'lucide-react';
+import { X, MonitorDown, Download, CheckCircle, Sparkles, Check } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 
-export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPromptPWA, hasPrompt = false }) {
+export default function DesktopInstallModal({ 
+  isOpen, 
+  onClose, 
+  lang = 'km', 
+  onPromptPWA, 
+  hasPrompt = false,
+  isInstalled = false,
+  onMarkInstalled
+}) {
   if (!isOpen) return null;
 
   const downloadDesktopShortcut = () => {
@@ -65,83 +73,122 @@ export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPr
           </div>
         </div>
 
-        {/* Content Options */}
-        <div className="space-y-4">
-          {/* Method 1: Direct PWA Install Button (If supported by browser) */}
-          {hasPrompt ? (
-            <div className="p-4 rounded-2xl bg-purple-900/40 border border-purple-400/40 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold border border-emerald-400/30">1</span>
-                <h3 className="text-sm font-bold text-white">
-                  {lang === 'km' ? 'ដំឡើងជា App ផ្លូវការ (PWA Install)' : 'Install Official PWA App'}
-                </h3>
+        {/* If Already Installed Screen */}
+        {isInstalled ? (
+          <div className="p-6 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-center space-y-3">
+            <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
+            <h3 className="text-base font-bold text-white">
+              {lang === 'km' ? 'កម្មវិធីត្រូវបានដំឡើងរួចរាល់ហើយ!' : 'Application is already installed!'}
+            </h3>
+            <p className="text-xs text-emerald-200/80 leading-relaxed">
+              {lang === 'km'
+                ? 'លោកគ្រូ-អ្នកគ្រូអាចបើក AC-GAME ពីអេក្រង់ Desktop ឬ Start Menu របស់កុំព្យូទ័របានភ្លាមៗគ្រប់ពេលវេលា។'
+                : 'You can launch AC-GAME anytime from your Windows Desktop or Start Menu.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); onClose(); }}
+              className="mt-2 px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md"
+            >
+              {lang === 'km' ? 'យល់ព្រម' : 'Done'}
+            </button>
+          </div>
+        ) : (
+          /* Content Options */
+          <div className="space-y-4">
+            {/* Method 1: Direct PWA Install Button (If supported by browser) */}
+            {hasPrompt ? (
+              <div className="p-4 rounded-2xl bg-purple-900/40 border border-purple-400/40 space-y-3 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold border border-emerald-400/30">1</span>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <span>{lang === 'km' ? 'ដំឡើងជា App ផ្លូវការ (PWA Install)' : 'Install Official PWA App'}</span>
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin" />
+                  </h3>
+                </div>
+                <p className="text-xs text-purple-200/80 leading-relaxed">
+                  {lang === 'km' 
+                    ? 'កម្មវិធីនឹងត្រូវដំឡើងទៅក្នុង Start Menu និងអេក្រង់ Desktop ដំណើរការដាច់ដោយឡែកដូចកម្មវិធី Desktop ពិតប្រាកដ។' 
+                    : 'Installs as a standalone native-like desktop app without browser toolbars.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    onPromptPWA && onPromptPWA();
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all border border-emerald-400/40 animate-pulse"
+                >
+                  <MonitorDown className="w-4 h-4" />
+                  <span>{lang === 'km' ? '👉 ចុចទីនេះដើម្បីដំឡើងភ្លាមៗ (Install Now)' : '👉 Install Now'}</span>
+                </button>
               </div>
-              <p className="text-xs text-purple-200/80 leading-relaxed">
-                {lang === 'km' 
-                  ? 'កម្មវិធីនឹងត្រូវដំឡើងទៅក្នុង Start Menu និងអេក្រង់ Desktop ដំណើរការដាច់ដោយឡែកដូចកម្មវិធី Desktop ពិតប្រាកដ។' 
-                  : 'Installs as a standalone native-like desktop app without browser toolbars.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick();
-                  onPromptPWA && onPromptPWA();
-                }}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                <MonitorDown className="w-4 h-4" />
-                <span>{lang === 'km' ? 'ចុចទីនេះដើម្បីដំឡើងភ្លាមៗ (Install Now)' : 'Install Now'}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="p-4 rounded-2xl bg-purple-900/40 border border-purple-400/40 space-y-2.5">
+            ) : (
+              <div className="p-4 rounded-2xl bg-purple-900/40 border border-purple-400/40 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs font-bold border border-cyan-400/30">1</span>
+                  <h3 className="text-sm font-bold text-white">
+                    {lang === 'km' ? 'ដំឡើងតាមរយៈ Browser (Chrome / Edge)' : 'Install via Browser'}
+                  </h3>
+                </div>
+                <p className="text-xs text-purple-200/80 leading-relaxed">
+                  {lang === 'km'
+                    ? 'នៅលើ Google Chrome ឬ Microsoft Edge សូមក្រឡេកមើលទៅ «ចុងរបារ URL (Address Bar)» ខាងលើផ្នែកស្តាំ រួចចុចលើសញ្ញា 🖥️ ឬ ⬇️ (Install App) ដើម្បីដំឡើង។'
+                    : 'Look at the right end of your Chrome or Edge address bar, click the 🖥️ or ⬇️ Install icon, and select "Install".'}
+                </p>
+              </div>
+            )}
+
+            {/* Method 2: Instant Desktop Shortcut Download */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs font-bold border border-cyan-400/30">1</span>
+                <span className="w-6 h-6 rounded-full bg-yellow-500/20 text-yellow-300 flex items-center justify-center text-xs font-bold border border-yellow-400/30">2</span>
                 <h3 className="text-sm font-bold text-white">
-                  {lang === 'km' ? 'ដំឡើងតាមរយៈ Browser (Chrome / Edge)' : 'Install via Browser'}
+                  {lang === 'km' ? 'ទាញយក Shortcut ដាក់លើ Desktop' : 'Create 1-Click Desktop Shortcut'}
                 </h3>
               </div>
               <p className="text-xs text-purple-200/80 leading-relaxed">
                 {lang === 'km'
-                  ? 'នៅលើ Google Chrome ឬ Microsoft Edge សូមក្រឡេកមើលទៅ «ចុងរបារ URL (Address Bar)» ខាងលើផ្នែកស្តាំ រួចចុចលើសញ្ញា 🖥️ ឬ ⬇️ (Install App) ដើម្បីដំឡើង។'
-                  : 'Look at the right end of your Chrome or Edge address bar, click the 🖥️ or ⬇️ Install icon, and select "Install".'}
+                  ? 'ទាញយក File Shortcut រួចអូសទាញដាក់លើផ្ទាំង Desktop របស់កុំព្យូទ័រ ដើម្បីចុចបើកកម្មវិធីបានភ្លាមៗ ១ ឃ្លីកគ្រប់ពេល។'
+                  : 'Download the shortcut launcher and place it on your Windows desktop for instant 1-click access.'}
               </p>
+              <button
+                type="button"
+                onClick={downloadDesktopShortcut}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Download className="w-4 h-4 text-yellow-300" />
+                <span>{lang === 'km' ? '📥 ទាញយក Desktop Shortcut (1-Click Launch)' : '📥 Download Desktop Shortcut'}</span>
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Method 2: Instant Desktop Shortcut Download */}
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-yellow-500/20 text-yellow-300 flex items-center justify-center text-xs font-bold border border-yellow-400/30">2</span>
-              <h3 className="text-sm font-bold text-white">
-                {lang === 'km' ? 'ទាញយក Shortcut ដាក់លើ Desktop' : 'Create 1-Click Desktop Shortcut'}
-              </h3>
-            </div>
-            <p className="text-xs text-purple-200/80 leading-relaxed">
-              {lang === 'km'
-                ? 'ទាញយក File Shortcut រួចអូសទាញដាក់លើផ្ទាំង Desktop របស់កុំព្យូទ័រ ដើម្បីចុចបើកកម្មវិធីបានភ្លាមៗ ១ ឃ្លីកគ្រប់ពេល។'
-                : 'Download the shortcut launcher and place it on your Windows desktop for instant 1-click access.'}
-            </p>
+        {/* Footer Actions */}
+        <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between flex-wrap gap-2">
+          {!isInstalled && onMarkInstalled && (
             <button
               type="button"
-              onClick={downloadDesktopShortcut}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+              onClick={() => {
+                sound.playClick();
+                onMarkInstalled();
+              }}
+              className="text-[11px] text-purple-300/70 hover:text-emerald-300 underline flex items-center gap-1 transition-colors"
             >
-              <Download className="w-4 h-4 text-yellow-300" />
-              <span>{lang === 'km' ? '📥 ទាញយក Desktop Shortcut (1-Click Launch)' : '📥 Download Desktop Shortcut'}</span>
+              <Check className="w-3 h-3" />
+              <span>{lang === 'km' ? 'ខ្ញុំបានដំឡើងរួចហើយ (លាក់ប៊ូតុងនេះ)' : 'Already installed (Hide button)'}</span>
+            </button>
+          )}
+
+          <div className="ml-auto">
+            <button
+              type="button"
+              onClick={() => { sound.playClick(); onClose(); }}
+              className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all"
+            >
+              {lang === 'km' ? 'យល់ព្រម (Close)' : 'Done'}
             </button>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-6 pt-4 border-t border-white/10 flex justify-end">
-          <button
-            type="button"
-            onClick={() => { sound.playClick(); onClose(); }}
-            className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all"
-          >
-            {lang === 'km' ? 'យល់ព្រម (Close)' : 'Done'}
-          </button>
         </div>
       </div>
     </div>

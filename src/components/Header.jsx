@@ -26,9 +26,30 @@ export default function Header({
   const [muted, setMuted] = useState(false);
   const [isLevelMenuOpen, setIsLevelMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(() => {
+    return (typeof window !== 'undefined' && window.__pwaPrompt) || null;
+  });
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const standalone = 
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://');
+    if (standalone) return true;
+    try {
+      return localStorage.getItem('ac_game_pwa_installed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://')
+    );
+  });
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const levelMenuRef = useRef(null);
 
@@ -60,46 +81,101 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle PWA and standalone app detection
+  // Handle PWA and standalone app detection & installation state
   useEffect(() => {
-    const checkStandalone = () => {
+    const checkInstallation = async () => {
+      // 1. Check standalone display mode
       const standalone = 
         window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true ||
         document.referrer.includes('android-app://');
-      setIsStandalone(standalone);
-    };
-    checkStandalone();
 
-    const handleBeforeInstall = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+      if (standalone) {
+        setIsStandalone(true);
+        setIsInstalled(true);
+        try { localStorage.setItem('ac_game_pwa_installed', 'true'); } catch (e) {}
+        return;
+      }
+
+      // 2. Check getInstalledRelatedApps API in Chrome/Edge
+      if ('getInstalledRelatedApps' in navigator) {
+        try {
+          const relatedApps = await navigator.getInstalledRelatedApps();
+          if (Array.isArray(relatedApps) && relatedApps.length > 0) {
+            setIsInstalled(true);
+            try { localStorage.setItem('ac_game_pwa_installed', 'true'); } catch (e) {}
+            return;
+          }
+        } catch (e) {
+          // silently handle
+        }
+      }
+
+      // 3. Check early prompt stored on window
+      if (window.__pwaPrompt) {
+        setDeferredPrompt(window.__pwaPrompt);
+        setIsInstalled(false);
+        try { localStorage.removeItem('ac_game_pwa_installed'); } catch (err) {}
+      }
     };
 
-    const handleInstalled = () => {
+    checkInstallation();
+
+    // Listen for custom events dispatched by the global HTML head script
+    const handlePromptReady = (e) => {
+      const prompt = e.detail || window.__pwaPrompt;
+      setDeferredPrompt(prompt);
+      setIsInstalled(false);
+      try { localStorage.removeItem('ac_game_pwa_installed'); } catch (err) {}
+    };
+
+    const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      window.__pwaPrompt = null;
+      try { localStorage.setItem('ac_game_pwa_installed', 'true'); } catch (err) {}
+      setIsInstallModalOpen(false);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-    window.addEventListener('appinstalled', handleInstalled);
+    // Direct window listeners as fallback
+    const handleDirectBeforeInstall = (e) => {
+      e.preventDefault();
+      window.__pwaPrompt = e;
+      setDeferredPrompt(e);
+      setIsInstalled(false);
+      try { localStorage.removeItem('ac_game_pwa_installed'); } catch (err) {}
+    };
+
+    window.addEventListener('pwa-prompt-ready', handlePromptReady);
+    window.addEventListener('pwa-installed', handleAppInstalled);
+    window.addEventListener('beforeinstallprompt', handleDirectBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-      window.removeEventListener('appinstalled', handleInstalled);
+      window.removeEventListener('pwa-prompt-ready', handlePromptReady);
+      window.removeEventListener('pwa-installed', handleAppInstalled);
+      window.removeEventListener('beforeinstallprompt', handleDirectBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
     sound.playClick();
-    if (deferredPrompt) {
+    const promptEvent = deferredPrompt || window.__pwaPrompt;
+
+    if (promptEvent) {
       try {
-        await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
         if (choice && choice.outcome === 'accepted') {
           setIsInstalled(true);
+          try {
+            localStorage.setItem('ac_game_pwa_installed', 'true');
+          } catch (e) {}
+          setIsInstallModalOpen(false);
         }
         setDeferredPrompt(null);
+        window.__pwaPrompt = null;
       } catch (err) {
         console.warn('Install error:', err);
         setIsInstallModalOpen(true);
@@ -323,7 +399,13 @@ export default function Header({
         onClose={() => setIsInstallModalOpen(false)}
         lang={lang}
         onPromptPWA={handleInstallClick}
-        hasPrompt={!!deferredPrompt}
+        hasPrompt={!!(deferredPrompt || (typeof window !== 'undefined' && window.__pwaPrompt))}
+        isInstalled={isInstalled}
+        onMarkInstalled={() => {
+          setIsInstalled(true);
+          try { localStorage.setItem('ac_game_pwa_installed', 'true'); } catch (e) {}
+          setIsInstallModalOpen(false);
+        }}
       />
     </header>
   );
