@@ -113,7 +113,7 @@ const seedSuperAdmin = async () => {
         role: 'superadmin',
         license: 'founder_unlimited',
         avatar: '👑',
-        school: 'AC-Kahoot! HQ (Platform Owner)'
+        school: 'AC-GAME! HQ (Platform Owner)'
       });
       console.log('✅ Super Admin seeded in MongoDB!');
     } else {
@@ -179,7 +179,7 @@ const migrateQuizzes = async () => {
           image: q.image || '',
           authorId: q.authorId || 'official',
           authorEmail: q.authorEmail || 'official',
-          authorName: q.authorName || 'AC-Kahoot! Official',
+          authorName: q.authorName || 'AC-GAME! Official',
           isOfficial: q.isOfficial || false,
           questions: formattedQuestions
         });
@@ -328,7 +328,7 @@ const repairQuizAuthorFields = async () => {
           { $set: {
             authorId: q.authorId || q.creatorId || 'official',
             authorEmail: q.authorEmail || 'official',
-            authorName: q.authorName || 'AC-Kahoot! Official',
+            authorName: q.authorName || 'AC-GAME! Official',
             isOfficial: q.isOfficial ?? true
           }}
         );
@@ -437,7 +437,7 @@ function loadUsers() {
             role: 'superadmin',
             license: 'founder_unlimited',
             avatar: '👑',
-            school: 'AC-Kahoot! HQ (Platform Owner)',
+            school: 'AC-GAME! HQ (Platform Owner)',
             createdAt: '2026-01-01T00:00:00.000Z'
           });
           saveUsers(parsed);
@@ -457,7 +457,7 @@ function loadUsers() {
       role: 'superadmin',
       license: 'founder_unlimited',
       avatar: '👑',
-      school: 'AC-Kahoot! HQ (Platform Owner)',
+      school: 'AC-GAME! HQ (Platform Owner)',
       createdAt: '2026-01-01T00:00:00.000Z'
     },
     {
@@ -689,12 +689,12 @@ async function sendOtpEmail(targetEmail, otpCode, userName) {
         socketTimeout: 4000
       });
       await transporter.sendMail({
-        from: `"AC-Kahoot! Security" <${SMTP_USER}>`,
+        from: `"AC-GAME! Security" <${SMTP_USER}>`,
         to: targetEmail,
-        subject: `[AC-Kahoot!] លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់របស់អ្នក៖ ${otpCode}`,
+        subject: `[AC-GAME!] លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់របស់អ្នក៖ ${otpCode}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 25px; border-radius: 16px; background: #1a0836; color: #ffffff;">
-            <h2 style="color: #ffd700; margin-top: 0;">AC-Kahoot! វេទិកាសិក្សា</h2>
+            <h2 style="color: #ffd700; margin-top: 0;">AC-GAME! វេទិកាសិក្សា</h2>
             <p>សួស្តី <strong>${userName || 'លោកគ្រូ/អ្នកគ្រូ'}</strong>,</p>
             <p>អ្នកបានស្នើសុំប្តូរលេខសម្ងាត់សម្រាប់គណនី (${targetEmail})។ នេះជាលេខកូដផ្ទៀងផ្ទាត់ ៦ ខ្ទង់របស់អ្នក៖</p>
             <div style="background: #3c1361; padding: 18px; border-radius: 12px; text-align: center; margin: 20px 0; border: 1px solid #a855f7;">
@@ -987,8 +987,8 @@ function loadAnnouncement() {
   return {
     enabled: true,
     showForFreeOnly: true,
-    textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ តម្លៃត្រឹមតែ $ ១/ឆ្នាំ (ផុតកំណត់ថ្ងៃ ៣១ កញ្ញា) !!!",
-    textEn: "⚡ Improve student outcomes this school year with AC-Kahoot! Pro. Unlimited quizzes & players. Special offer $1/year (Ends Sept 31) !!!",
+    textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-GAME! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ តម្លៃត្រឹមតែ $ ១/ឆ្នាំ (ផុតកំណត់ថ្ងៃ ៣១ កញ្ញា) !!!",
+    textEn: "⚡ Improve student outcomes this school year with AC-GAME! Pro. Unlimited quizzes & players. Special offer $1/year (Ends Sept 31) !!!",
     buttonTextKm: "ទិញឥឡូវនេះ (Buy now)",
     buttonTextEn: "Buy now",
     buttonLink: "https://t.me/KEMBOREY",
@@ -1437,7 +1437,7 @@ app.post('/api/quizzes', async (req, res) => {
     newQuiz.id = newQuiz.id || `quiz_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     newQuiz.authorId = newQuiz.authorId || user?.id || 'official';
     newQuiz.authorEmail = newQuiz.authorEmail || user?.email || 'official';
-    newQuiz.authorName = newQuiz.authorName || user?.name || 'AC-Kahoot! Official';
+    newQuiz.authorName = newQuiz.authorName || user?.name || 'AC-GAME! Official';
 
     if (existingQuiz) {
       await Quiz.updateOne({ id: newQuiz.id }, { $set: newQuiz });

@@ -845,7 +845,7 @@ export default function QuizEditor({ initialQuiz, onSave, onCancel, currentUser,
                 <option value="5">5 ពិន្ទុ</option>
                 <option value="10">10 ពិន្ទុ (ស្តង់ដារ)</option>
                 <option value="100">100 ពិន្ទុ</option>
-                <option value="1000">1000 ពិន្ទុ (ល្បឿន / Kahoot!)</option>
+                <option value="1000">1000 ពិន្ទុ (ល្បឿន / AC-GAME!)</option>
               </select>
             </div>
           </div>

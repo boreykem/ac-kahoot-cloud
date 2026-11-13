@@ -19,8 +19,8 @@ export default function LicenseTopBanner({
   const [announcement, setAnnouncement] = useState({
     enabled: true,
     showForFreeOnly: true,
-    textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ តម្លៃត្រឹមតែ $ ១/ឆ្នាំ (ផុតកំណត់ថ្ងៃ ៣១ កញ្ញា) !!!",
-    textEn: "⚡ Improve student outcomes this school year with AC-Kahoot! Pro. Unlimited quizzes & players. Special offer $1/year (Ends Sept 31) !!!",
+    textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-GAME! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ តម្លៃត្រឹមតែ $ ១/ឆ្នាំ (ផុតកំណត់ថ្ងៃ ៣១ កញ្ញា) !!!",
+    textEn: "⚡ Improve student outcomes this school year with AC-GAME! Pro. Unlimited quizzes & players. Special offer $1/year (Ends Sept 31) !!!",
     buttonTextKm: "ទិញឥឡូវនេះ (Buy now)",
     buttonTextEn: "Buy now",
     buttonLink: "https://t.me/ac_mart_programer_developer_bot"
@@ -93,8 +93,8 @@ export default function LicenseTopBanner({
   };
 
   const bannerText = lang === 'km' 
-    ? (announcement?.textKm || '⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។')
-    : (announcement?.textEn || '⚡ Improve student outcomes this school year with AC-Kahoot! Pro. Unlimited quizzes & players. Save 20% from $3/mo. Offer ends August 31.');
+    ? (announcement?.textKm || '⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-GAME! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។')
+    : (announcement?.textEn || '⚡ Improve student outcomes this school year with AC-GAME! Pro. Unlimited quizzes & players. Save 20% from $3/mo. Offer ends August 31.');
 
   const btnText = lang === 'km'
     ? (announcement?.buttonTextKm || 'ទិញឥឡូវនេះ (Buy now)')

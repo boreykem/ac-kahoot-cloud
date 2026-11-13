@@ -127,7 +127,7 @@ export default function Header({
             </div>
             <div>
               <div className="flex items-center gap-0.5">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-white font-['Outfit']">Kahoot<span className="text-yellow-400">!</span></span>
+                <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-white font-['Outfit']">GAME<span className="text-yellow-400">!</span></span>
               </div>
               <p className="text-[10px] text-purple-200/70 font-khmer hidden 2xl:block leading-none">{t.tagline}</p>
             </div>
@@ -290,7 +290,7 @@ export default function Header({
               type="button"
               onClick={handleInstallClick}
               className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-purple-800/80 to-indigo-800/80 hover:from-purple-700 hover:to-indigo-700 text-purple-100 hover:text-white border border-purple-400/40 hover:border-cyan-400/60 text-xs sm:text-sm font-semibold font-khmer shadow-md transition-all hover:scale-105 active:scale-95 group"
-              title={lang === 'km' ? 'ដំឡើង AC-Kahoot! លើ Desktop កុំព្យូទ័រ' : 'Install AC-Kahoot! to Desktop'}
+              title={lang === 'km' ? 'ដំឡើង AC-GAME! លើ Desktop កុំព្យូទ័រ' : 'Install AC-GAME! to Desktop'}
             >
               <MonitorDown className="w-4 h-4 text-cyan-300 group-hover:scale-110 transition-transform" />
               <span>{lang === 'km' ? 'ដំឡើងលើ Desktop' : 'Install App'}</span>

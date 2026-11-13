@@ -284,7 +284,7 @@ export default function App() {
         ...quizToSave,
         authorId: quizToSave.authorId || currentUser?.id || 'official',
         authorEmail: quizToSave.authorEmail || currentUser?.email || 'official',
-        authorName: quizToSave.authorName || currentUser?.name || 'AC-Kahoot! Official',
+        authorName: quizToSave.authorName || currentUser?.name || 'AC-GAME! Official',
         isOfficial: currentUser?.role === 'superadmin' ? (quizToSave.isOfficial ?? true) : false
       };
 
@@ -464,7 +464,7 @@ export default function App() {
       {/* Footer in Home View */}
       {currentView === 'home' && (
         <footer className="glass-panel border-t border-white/10 py-6 text-center text-xs text-purple-200/70 font-khmer mt-12 space-y-2">
-          <p>© 2026 AC-Kahoot! - វេទិកាសំណួរ & សិក្សាល្បែងអន្តរកម្មកម្ពុជា</p>
+          <p>© 2026 AC-GAME! - វេទិកាសំណួរ & សិក្សាល្បែងអន្តរកម្មកម្ពុជា</p>
           <p className="flex items-center justify-center gap-2">
             <span>ទាក់ទង / គាំទ្រ៖</span>
             <a

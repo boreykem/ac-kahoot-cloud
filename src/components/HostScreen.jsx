@@ -98,7 +98,7 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
     const ws = XLSX.utils.json_to_sheet(exportData);
     
     // Add title row
-    XLSX.utils.sheet_add_aoa(ws, [["របាយការណ៍លទ្ធផល: " + (quiz?.title || "AC-Kahoot")]], { origin: "A1" });
+    XLSX.utils.sheet_add_aoa(ws, [["របាយការណ៍លទ្ធផល: " + (quiz?.title || "AC-GAME")]], { origin: "A1" });
     ws['!merges'] = [ { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } } ]; // Merge A1:C1
     
     // Push the json data down by 2 rows to make space for the title
@@ -115,7 +115,7 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
     XLSX.utils.book_append_sheet(wb, ws, "លទ្ធផលសិស្ស");
 
     // Save the file
-    XLSX.writeFile(wb, `AC-Kahoot-Results-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `AC-GAME-Results-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   useEffect(() => {

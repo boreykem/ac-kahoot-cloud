@@ -12,13 +12,13 @@ export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPr
 <html lang="km">
 <head>
   <meta charset="utf-8">
-  <title>AC-Kahoot! App</title>
+  <title>AC-GAME! App</title>
   <link rel="icon" href="${currentOrigin}/favicon.ico">
   <meta http-equiv="refresh" content="0; url=${currentOrigin}">
 </head>
 <body style="background:#1e073b;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
   <div style="text-align:center;">
-    <h1 style="font-size:24px;margin-bottom:8px;">🚀 កំពុងបើក AC-Kahoot...</h1>
+    <h1 style="font-size:24px;margin-bottom:8px;">🚀 កំពុងបើក AC-GAME...</h1>
     <p style="color:#c084fc;">Loading your interactive classroom game...</p>
   </div>
   <script>window.location.replace("${currentOrigin}");</script>
@@ -28,7 +28,7 @@ export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPr
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'AC-Kahoot-App.html';
+    a.download = 'AC-GAME-App.html';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

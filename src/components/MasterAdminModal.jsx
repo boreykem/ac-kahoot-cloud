@@ -43,8 +43,8 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
   const [announcementData, setAnnouncementData] = useState({
     enabled: true,
     showForFreeOnly: true,
-    textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។",
-    textEn: "⚡ Improve student outcomes this school year with AC-Kahoot! Pro. Unlimited quizzes & players. Save 20% from $3/mo. Offer ends August 31.",
+    textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-GAME! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។",
+    textEn: "⚡ Improve student outcomes this school year with AC-GAME! Pro. Unlimited quizzes & players. Save 20% from $3/mo. Offer ends August 31.",
     buttonTextKm: "ទិញឥឡូវនេះ (Buy now)",
     buttonTextEn: "Buy now",
     buttonLink: "https://t.me/ac_mart_programer_developer_bot"
@@ -281,7 +281,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
   const handleCopySalesText = (lic) => {
     sound.playClick();
-    const text = `🎉 ជំរាបសួរលោកគ្រូ/អ្នកគ្រូ!\n✨ សូមអរគុណសម្រាប់ការជាវកម្មវិធី AC-Kahoot! វេទិកាសិក្សាអន្តរកម្ម។\n\n🔑 License Activation Key របស់អ្នកគឺ៖\n👉 ${lic.key}\n\n📌 ប្រភេទ៖ ${lic.typeName}\n💡 របៀបប្រើ៖ បើកកម្មវិធី AC-Kahoot! ➡️ ចុចលើរូប Profile ឬប៊ូតុង "បញ្ចូល License Key" ➡️ វាយលេខកូដខាងលើដើម្បីបើកប្រើប្រាស់ Pro បានភ្លាមៗ!`;
+    const text = `🎉 ជំរាបសួរលោកគ្រូ/អ្នកគ្រូ!\n✨ សូមអរគុណសម្រាប់ការជាវកម្មវិធី AC-GAME! វេទិកាសិក្សាអន្តរកម្ម។\n\n🔑 License Activation Key របស់អ្នកគឺ៖\n👉 ${lic.key}\n\n📌 ប្រភេទ៖ ${lic.typeName}\n💡 របៀបប្រើ៖ បើកកម្មវិធី AC-GAME! ➡️ ចុចលើរូប Profile ឬប៊ូតុង "បញ្ចូល License Key" ➡️ វាយលេខកូដខាងលើដើម្បីបើកប្រើប្រាស់ Pro បានភ្លាមៗ!`;
     navigator.clipboard.writeText(text);
     setCopiedKey(lic.key);
     setActionNotice(`បានចម្លង Key ${lic.key} ជាមួយសារ Telegram រួចរាល់!`);
@@ -455,7 +455,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     sound.playClick();
     const backupData = {
       exportedAt: new Date().toISOString(),
-      platform: 'AC-Kahoot! Enterprise',
+      platform: 'AC-GAME! Enterprise',
       stats,
       users
     };
@@ -463,7 +463,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ac-kahoot-backup-${Date.now()}.json`;
+    a.download = `AC-GAME-backup-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -885,7 +885,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                 <div className="bg-[#46178f] border border-purple-400/40 text-white p-3 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-lg">
                   <span className="p-1 rounded-lg text-purple-300 bg-white/10">✕</span>
                   <span className="flex-1 text-center font-medium">
-                    {announcementData.textKm || '⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។'}
+                    {announcementData.textKm || '⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-GAME! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។'}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-1 rounded-lg bg-purple-700 text-yellow-300 text-[11px] font-bold">បញ្ចូល Key</span>
@@ -940,7 +940,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                       type="button"
                       onClick={() => setAnnouncementData({
                         ...announcementData,
-                        textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-Kahoot! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។"
+                        textKm: "⚡ បង្កើនប្រសិទ្ធភាពបង្រៀនពេញមួយឆ្នាំជាមួយ AC-GAME! Pro – បង្កើតវិញ្ញាសា & សិស្សចូលលេងមិនកំណត់។ ចុះតម្លៃ ២០% ត្រឹមតែ $3/ខែ (ផុតកំណត់ថ្ងៃ ៣១ សីហា)។"
                       })}
                       className="text-[11px] text-yellow-300 hover:underline"
                     >
@@ -1448,7 +1448,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
                     <div className="text-yellow-300 font-bold flex items-center gap-1">
                       <span>🎯</span>
-                      <span>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</span>
+                      <span>សូមស្វាគមន៍មកកាន់ AC-GAME! Official Bot</span>
                     </div>
                     <div className="text-slate-200">
                       សួស្តី <strong>Kem!</strong> 🙏
@@ -1457,7 +1457,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                       ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <strong>Hardware Machine ID</strong> របស់អ្នកមកកាន់ទីនេះ។
                     </div>
                     <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 space-y-1">
-                      <div className="font-bold text-amber-300">🌟 គម្រោងតម្លៃ AC-Kahoot Pro៖</div>
+                      <div className="font-bold text-amber-300">🌟 គម្រោងតម្លៃ AC-GAME Pro៖</div>
                       {botPricing.price1Month && <div>• <strong>Pro ប្រចាំខែ (1 Month)៖</strong> <span className="text-yellow-400 font-bold">{botPricing.price1Month}</span></div>}
                       {botPricing.price1Year && <div>• <strong>Pro ប្រចាំឆ្នាំ (1 Year)៖</strong> <span className="text-yellow-400 font-bold">{botPricing.price1Year}</span></div>}
                       {botPricing.priceLifetime && <div>• <strong>Pro ពេញមួយជីវិត (Lifetime)៖</strong> <span className="text-emerald-400 font-bold">{botPricing.priceLifetime}</span></div>}
@@ -1596,7 +1596,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     <button
                       onClick={() => {
                         sound.playClick();
-                        const scriptText = `🎬 SCRIPT ខ្លី TIKTOK & REELS (៤៥-៦០ វិនាទី) - AC-KAHOOT!\n\n[0:00 - 0:05] Hook:\n«តើលោកគ្រូអ្នកគ្រូធុញនឹងការអង្គុយវាយសំណួរ Kahoot ម្តងមួយៗរាប់ម៉ោងមែនទេ?»\n\n[0:06 - 0:15] បង្ហាញ AI:\n«ឈប់បារម្ភ! ជាមួយ AC-Kahoot គ្រាន់តែ Paste មេរៀនចូល Gemini AI នឹងបង្កើតសំណួរ ៤ ជម្រើស និងការពន្យល់ជាភាសាខ្មែរស្វ័យប្រវត្ត ក្នុង ៥ វិនាទី!»\n\n[0:16 - 0:25] កម្រិតសិក្សា:\n«មិនត្រឹមតែប៉ុណ្ណោះ អាចជ្រើសរើសបាន ៤ កម្រិត៖ បឋម, មធ្យម, វិទ្យាល័យបាក់ឌុប និងសាកលវិទ្យាល័យ!»\n\n[0:26 - 0:38] Offline LAN:\n«ពិសេសបំផុត! សាលាគ្មាន WiFi ឬ Internet ខ្សោយ ក៏សិស្សអាចលេងបានរលូនគ្មាន Lag តាម Hotspot ផ្ទាល់ខ្លួន!»\n\n[0:39 - 0:50] Call to Action:\n«ប្ដូរថ្នាក់រៀនឱ្យក្លាយជាវេទិកាប្រកួតប្រជែងដ៏ជក់ចិត្ត! សាកល្បងឥឡូវនេះ Comment "សាកល្បង" ឬ Inbox មកកាន់ផេកដើម្បីទទួល License ឥតគិតថ្លៃ!»`;
+                        const scriptText = `🎬 SCRIPT ខ្លី TIKTOK & REELS (៤៥-៦០ វិនាទី) - AC-GAME!\n\n[0:00 - 0:05] Hook:\n«តើលោកគ្រូអ្នកគ្រូធុញនឹងការអង្គុយវាយសំណួរ Kahoot ម្តងមួយៗរាប់ម៉ោងមែនទេ?»\n\n[0:06 - 0:15] បង្ហាញ AI:\n«ឈប់បារម្ភ! ជាមួយ AC-GAME គ្រាន់តែ Paste មេរៀនចូល Gemini AI នឹងបង្កើតសំណួរ ៤ ជម្រើស និងការពន្យល់ជាភាសាខ្មែរស្វ័យប្រវត្ត ក្នុង ៥ វិនាទី!»\n\n[0:16 - 0:25] កម្រិតសិក្សា:\n«មិនត្រឹមតែប៉ុណ្ណោះ អាចជ្រើសរើសបាន ៤ កម្រិត៖ បឋម, មធ្យម, វិទ្យាល័យបាក់ឌុប និងសាកលវិទ្យាល័យ!»\n\n[0:26 - 0:38] Offline LAN:\n«ពិសេសបំផុត! សាលាគ្មាន WiFi ឬ Internet ខ្សោយ ក៏សិស្សអាចលេងបានរលូនគ្មាន Lag តាម Hotspot ផ្ទាល់ខ្លួន!»\n\n[0:39 - 0:50] Call to Action:\n«ប្ដូរថ្នាក់រៀនឱ្យក្លាយជាវេទិកាប្រកួតប្រជែងដ៏ជក់ចិត្ត! សាកល្បងឥឡូវនេះ Comment "សាកល្បង" ឬ Inbox មកកាន់ផេកដើម្បីទទួល License ឥតគិតថ្លៃ!»`;
                         navigator.clipboard.writeText(scriptText);
                         setActionNotice('បានចម្លង Script TikTok ខ្លីរួចរាល់!');
                         setTimeout(() => setActionNotice(''), 3000);
@@ -1616,7 +1616,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                         <span className="text-[10px] bg-indigo-400/20 text-indigo-200 px-2 py-0.5 rounded-md">YouTube / Facebook Page</span>
                       </div>
                       <p className="text-xs text-purple-200/80 leading-relaxed">
-                        • <strong>ផ្នែកទី ១:</strong> សេចក្ដីផ្ដើម & ណែនាំ AC-Kahoot!<br/>
+                        • <strong>ផ្នែកទី ១:</strong> សេចក្ដីផ្ដើម & ណែនាំ AC-GAME!<br/>
                         • <strong>ផ្នែកទី ២:</strong> ការបង្កើតសំណួរដោយ Gemini AI ពីមេរៀនខ្មែរ<br/>
                         • <strong>ផ្នែកទី ៣:</strong> របៀបលេងលើ Local Hotspot គ្មាន Internet<br/>
                         • <strong>ផ្នែកទី ៤:</strong> មុខងារ ៤ កម្រិតសិក្សា & Peer Instruction<br/>
@@ -1626,7 +1626,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     <button
                       onClick={() => {
                         sound.playClick();
-                        const fullScript = `💻 SCRIPT វីដេអូពេញបង្រៀនប្រើប្រាស់ (FULL TUTORIAL ៣-៤ នាទី) - AC-KAHOOT!\n\nផ្នែកទី ១៖ សេចក្ដីផ្ដើម\n«ជម្រាបសួរលោកគ្រូអ្នកគ្រូ និងសាស្ត្រាចារ្យទាំងអស់គ្នា! ថ្ងៃនេះខ្ញុំសូមណែនាំ AC-Kahoot ដែលជាប្រព័ន្ធសំណួរ-ចម្លើយអន្តរកម្មស្ទីល Kahoot ជំនាន់ថ្មី បង្កើតឡើងយ៉ាងពិសេសសម្រាប់វិស័យអប់រំនៅកម្ពុជា...»\n\nផ្នែកទី ២៖ ការបង្កើតសំណួរដោយ Gemini AI\n«ចំណុចលេចធ្លោទី ១ គឺ Gemini AI Generator។ លោកគ្រូអ្នកគ្រូមិនបាច់ចំណាយពេលច្រើនម៉ោងក្នុងការគិត ឬវាយសំណួរនោះទេ។ គ្រាន់តែ Copy អត្ថបទមេរៀនពីសៀវភៅ ឬឯកសារ PDF ដាក់ចូល AI នឹងបង្កើតសំណួរ ៤ ជម្រើសជាភាសាខ្មែរយ៉ាងត្រឹមត្រូវ...»\n\nផ្នែកទី ៣៖ ការដំណើរការលើ Local Network ដោយមិនបាច់ប្រើ Internet\n«ចំណុចទី ២៖ ដំណើរការលើ Local Network (Offline Mode)។ សាលាគ្មាន WiFi ក៏សិស្ស ៥០ ទៅ ១០០ នាក់អាច Scan QR Code ចូលលេងភ្លាមៗ គ្មាន Lag...»\n\nផ្នែកទី ៤៖ មុខងារតាមកម្រិតសិក្សា និង Peer Instruction\n«គាំទ្រ ៤ កម្រិតសិក្សា៖ បឋម, មធ្យម, វិទ្យាល័យបាក់ឌុប, និង Mazur's Peer Instruction សម្រាប់សាកលវិទ្យាល័យ...»\n\nផ្នែកទី ៥៖ សេចក្ដីសន្និដ្ឋាន & ការបញ្ជាទិញ\n«តម្លៃសមរម្យបំផុតសម្រាប់គ្រូខ្មែរ មិនបាច់បង់ប្រចាំខែថ្លៃៗ... សូមទាក់ទងមកកាន់ Telegram ខាងក្រោម!»`;
+                        const fullScript = `💻 SCRIPT វីដេអូពេញបង្រៀនប្រើប្រាស់ (FULL TUTORIAL ៣-៤ នាទី) - AC-GAME!\n\nផ្នែកទី ១៖ សេចក្ដីផ្ដើម\n«ជម្រាបសួរលោកគ្រូអ្នកគ្រូ និងសាស្ត្រាចារ្យទាំងអស់គ្នា! ថ្ងៃនេះខ្ញុំសូមណែនាំ AC-GAME ដែលជាប្រព័ន្ធសំណួរ-ចម្លើយអន្តរកម្មស្ទីល Kahoot ជំនាន់ថ្មី បង្កើតឡើងយ៉ាងពិសេសសម្រាប់វិស័យអប់រំនៅកម្ពុជា...»\n\nផ្នែកទី ២៖ ការបង្កើតសំណួរដោយ Gemini AI\n«ចំណុចលេចធ្លោទី ១ គឺ Gemini AI Generator។ លោកគ្រូអ្នកគ្រូមិនបាច់ចំណាយពេលច្រើនម៉ោងក្នុងការគិត ឬវាយសំណួរនោះទេ។ គ្រាន់តែ Copy អត្ថបទមេរៀនពីសៀវភៅ ឬឯកសារ PDF ដាក់ចូល AI នឹងបង្កើតសំណួរ ៤ ជម្រើសជាភាសាខ្មែរយ៉ាងត្រឹមត្រូវ...»\n\nផ្នែកទី ៣៖ ការដំណើរការលើ Local Network ដោយមិនបាច់ប្រើ Internet\n«ចំណុចទី ២៖ ដំណើរការលើ Local Network (Offline Mode)។ សាលាគ្មាន WiFi ក៏សិស្ស ៥០ ទៅ ១០០ នាក់អាច Scan QR Code ចូលលេងភ្លាមៗ គ្មាន Lag...»\n\nផ្នែកទី ៤៖ មុខងារតាមកម្រិតសិក្សា និង Peer Instruction\n«គាំទ្រ ៤ កម្រិតសិក្សា៖ បឋម, មធ្យម, វិទ្យាល័យបាក់ឌុប, និង Mazur's Peer Instruction សម្រាប់សាកលវិទ្យាល័យ...»\n\nផ្នែកទី ៥៖ សេចក្ដីសន្និដ្ឋាន & ការបញ្ជាទិញ\n«តម្លៃសមរម្យបំផុតសម្រាប់គ្រូខ្មែរ មិនបាច់បង់ប្រចាំខែថ្លៃៗ... សូមទាក់ទងមកកាន់ Telegram ខាងក្រោម!»`;
                         navigator.clipboard.writeText(fullScript);
                         setActionNotice('បានចម្លង Full Tutorial Script រួចរាល់!');
                         setTimeout(() => setActionNotice(''), 3000);
@@ -1664,7 +1664,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     <button
                       onClick={() => {
                         sound.playClick();
-                        const p1 = `🤯 ធុញនឹងការអង្គុយវាយសំណួរ Kahoot រាប់ម៉ោងមែនទេ?\nតើលោកគ្រូអ្នកគ្រូចង់បង្កើត Game សំណួរ-ចម្លើយ ១០ សំណួរក្នុងពេលត្រឹមតែ ៥ វិនាទីដែរឬទេ? ⏱️⚡\n\nសូមណែនាំ 🎯 AC-Kahoot! — កម្មវិធីសំណួរ-ចម្លើយអន្តរកម្មស្ទីល Kahoot បង្កើតឡើងយ៉ាងពិសេសសម្រាប់វិស័យអប់រំនៅកម្ពុជា 🇰🇭\n\n🌟 មុខងារពិសេសៗដែល Kahoot ធម្មតាមិនអាចធ្វើបាន៖\n✅ 🤖 Gemini AI Generator៖ គ្រាន់តែ Paste មេរៀន ឬសៀវភៅពុម្ពខ្មែរ ➡️ AI ចេញសំណួរ ៤ ជម្រើស និងការពន្យល់ភ្លាមៗ!\n✅ 📶 លេងបានទោះគ្មាន Internet (Offline Mode)៖ សាលាគ្មាន WiFi ឬ Internet ខ្សោយ ក៏នៅតែលេងបានរលូន គ្មាន Lag តាមរយៈ Local Hotspot!\n✅ 🇰🇭 ពុម្ពអក្សរខ្មែរ Kantumruy Pro ច្បាស់ស្អាត ១០០% ទាំងលើកុំព្យូទ័រ និងទូរស័ព្ទដៃ។\n✅ 🎓 បែងចែក ៤ កម្រិតសិក្សា៖ បឋមសិក្សា, អនុវិទ្យាល័យ, វិទ្យាល័យបាក់ឌុប, និងសាកលវិទ្យាល័យ (មានមុខងារ Mazur's Peer Instruction)។\n✅ 🏆 វេទិកាជ័យលាភី Podium 3D + សំឡេងតន្ត្រីរំភើបជក់ចិត្ត។\n\n🎁 ផ្ដល់ជូនសាកល្បង Free Trial សម្រាប់លោកគ្រូអ្នកគ្រូ ៥០ នាក់ដំបូង!\n👉 គ្រាន់តែ Comment ពាក្យ "សាកល្បង" ឬ Inbox មកកាន់ផេកឥឡូវនេះ ដើម្បីទទួលបាន Link ដំឡើងភ្លាមៗ!\n\n#ACKahoot #EdTechCambodia #គ្រូបង្រៀនកម្ពុជា #ការបង្រៀនបែបទំនើប #GeminiAI #KahootKhmer`;
+                        const p1 = `🤯 ធុញនឹងការអង្គុយវាយសំណួរ Kahoot រាប់ម៉ោងមែនទេ?\nតើលោកគ្រូអ្នកគ្រូចង់បង្កើត Game សំណួរ-ចម្លើយ ១០ សំណួរក្នុងពេលត្រឹមតែ ៥ វិនាទីដែរឬទេ? ⏱️⚡\n\nសូមណែនាំ 🎯 AC-GAME! — កម្មវិធីសំណួរ-ចម្លើយអន្តរកម្មស្ទីល Kahoot បង្កើតឡើងយ៉ាងពិសេសសម្រាប់វិស័យអប់រំនៅកម្ពុជា 🇰🇭\n\n🌟 មុខងារពិសេសៗដែល Kahoot ធម្មតាមិនអាចធ្វើបាន៖\n✅ 🤖 Gemini AI Generator៖ គ្រាន់តែ Paste មេរៀន ឬសៀវភៅពុម្ពខ្មែរ ➡️ AI ចេញសំណួរ ៤ ជម្រើស និងការពន្យល់ភ្លាមៗ!\n✅ 📶 លេងបានទោះគ្មាន Internet (Offline Mode)៖ សាលាគ្មាន WiFi ឬ Internet ខ្សោយ ក៏នៅតែលេងបានរលូន គ្មាន Lag តាមរយៈ Local Hotspot!\n✅ 🇰🇭 ពុម្ពអក្សរខ្មែរ Kantumruy Pro ច្បាស់ស្អាត ១០០% ទាំងលើកុំព្យូទ័រ និងទូរស័ព្ទដៃ។\n✅ 🎓 បែងចែក ៤ កម្រិតសិក្សា៖ បឋមសិក្សា, អនុវិទ្យាល័យ, វិទ្យាល័យបាក់ឌុប, និងសាកលវិទ្យាល័យ (មានមុខងារ Mazur's Peer Instruction)។\n✅ 🏆 វេទិកាជ័យលាភី Podium 3D + សំឡេងតន្ត្រីរំភើបជក់ចិត្ត។\n\n🎁 ផ្ដល់ជូនសាកល្បង Free Trial សម្រាប់លោកគ្រូអ្នកគ្រូ ៥០ នាក់ដំបូង!\n👉 គ្រាន់តែ Comment ពាក្យ "សាកល្បង" ឬ Inbox មកកាន់ផេកឥឡូវនេះ ដើម្បីទទួលបាន Link ដំឡើងភ្លាមៗ!\n\n#ACKahoot #EdTechCambodia #គ្រូបង្រៀនកម្ពុជា #ការបង្រៀនបែបទំនើប #GeminiAI #KahootKhmer`;
                         navigator.clipboard.writeText(p1);
                         setActionNotice('បានចម្លង Post 1 រួចរាល់!');
                         setTimeout(() => setActionNotice(''), 3000);
@@ -1681,13 +1681,13 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     <div>
                       <span className="text-xs font-bold text-yellow-300 block">📌 POST 2: ប្រៀបធៀប vs Kahoot</span>
                       <p className="text-[11px] text-purple-200/70 line-clamp-3">
-                        «ហេតុអ្វីគួរជ្រើស AC-Kahoot ជំនួសឱ្យ Kahoot? គ្មាន Internet ក៏លេងបាន, តម្លៃទិញដាច់មួយជីវិត, គាំទ្រវិញ្ញាសាខ្មែរ...»
+                        «ហេតុអ្វីគួរជ្រើស AC-GAME ជំនួសឱ្យ Kahoot? គ្មាន Internet ក៏លេងបាន, តម្លៃទិញដាច់មួយជីវិត, គាំទ្រវិញ្ញាសាខ្មែរ...»
                       </p>
                     </div>
                     <button
                       onClick={() => {
                         sound.playClick();
-                        const p2 = `🤔 ហេតុអ្វីបានជាលោកគ្រូអ្នកគ្រូគួរជ្រើសរើស AC-Kahoot ជំនួសឱ្យ Kahoot ធម្មតា?\n\nការបង្រៀនបែប Interactive ពិតជាជួយឱ្យសិស្សសប្បាយចិត្ត និងឆាប់ចាំមេរៀន ប៉ុន្តែ Kahoot ធម្មតាមិនសូវស័ក្តិសមនឹងសាលារៀននៅកម្ពុជាទេ ដោយសារ៖\n❌ ត្រូវការ Internet ល្បឿនលឿន (បើ WiFi ខ្សោយ លេងមិនកើត)\n❌ មុខងារ AI បង្កើតសំណួរគិតលុយថ្លៃរាប់សិបដុល្លារក្នុងមួយខែ\n❌ មិនសូវត្រូវតាមកម្មវិធីសិក្សារបស់ក្រសួងអប់រំកម្ពុជា\n\n👉 តែជាមួយ 🎯 AC-Kahoot ទាំងអស់នេះត្រូវបានដោះស្រាយ៖\n1️⃣ ដំណើរការលើ Local WiFi/Hotspot មិនបាច់ខ្វល់រឿងដាច់ Internet 🚀\n2️⃣ Gemini AI បង្កើតសំណួរភាសាខ្មែរ ឥតគិតថ្លៃរហ័សទាន់ចិត្ត 🤖\n3️⃣ តម្លៃសមរម្យបំផុតសម្រាប់គ្រូខ្មែរ (ទិញដាច់ប្រើបានមួយជីវិត មិនបាច់បង់ប្រចាំខែ) 💎\n4️⃣ មានវិញ្ញាសា និងរូបមន្តត្រៀមប្រឡងបាក់ឌុប MoEYS ស្រេចៗ 📚\n\n🔥 កញ្ចប់ពិសេសដើមឆ្នាំ៖ បញ្ចុះតម្លៃ ៥០% សម្រាប់គ្រូបង្រៀន!\n📩 Inbox មកកាន់យើងខ្ញុំឥឡូវនេះ ដើម្បីទទួលបានការប្រឹក្សា និង Demo ផ្ទាល់!\n\n#ACKahoot #KhmerEducation #QuizApp #បង្រៀនសិស្ស #សាលារៀនកម្ពុជា`;
+                        const p2 = `🤔 ហេតុអ្វីបានជាលោកគ្រូអ្នកគ្រូគួរជ្រើសរើស AC-GAME ជំនួសឱ្យ Kahoot ធម្មតា?\n\nការបង្រៀនបែប Interactive ពិតជាជួយឱ្យសិស្សសប្បាយចិត្ត និងឆាប់ចាំមេរៀន ប៉ុន្តែ Kahoot ធម្មតាមិនសូវស័ក្តិសមនឹងសាលារៀននៅកម្ពុជាទេ ដោយសារ៖\n❌ ត្រូវការ Internet ល្បឿនលឿន (បើ WiFi ខ្សោយ លេងមិនកើត)\n❌ មុខងារ AI បង្កើតសំណួរគិតលុយថ្លៃរាប់សិបដុល្លារក្នុងមួយខែ\n❌ មិនសូវត្រូវតាមកម្មវិធីសិក្សារបស់ក្រសួងអប់រំកម្ពុជា\n\n👉 តែជាមួយ 🎯 AC-GAME ទាំងអស់នេះត្រូវបានដោះស្រាយ៖\n1️⃣ ដំណើរការលើ Local WiFi/Hotspot មិនបាច់ខ្វល់រឿងដាច់ Internet 🚀\n2️⃣ Gemini AI បង្កើតសំណួរភាសាខ្មែរ ឥតគិតថ្លៃរហ័សទាន់ចិត្ត 🤖\n3️⃣ តម្លៃសមរម្យបំផុតសម្រាប់គ្រូខ្មែរ (ទិញដាច់ប្រើបានមួយជីវិត មិនបាច់បង់ប្រចាំខែ) 💎\n4️⃣ មានវិញ្ញាសា និងរូបមន្តត្រៀមប្រឡងបាក់ឌុប MoEYS ស្រេចៗ 📚\n\n🔥 កញ្ចប់ពិសេសដើមឆ្នាំ៖ បញ្ចុះតម្លៃ ៥០% សម្រាប់គ្រូបង្រៀន!\n📩 Inbox មកកាន់យើងខ្ញុំឥឡូវនេះ ដើម្បីទទួលបានការប្រឹក្សា និង Demo ផ្ទាល់!\n\n#ACKahoot #KhmerEducation #QuizApp #បង្រៀនសិស្ស #សាលារៀនកម្ពុជា`;
                         navigator.clipboard.writeText(p2);
                         setActionNotice('បានចម្លង Post 2 រួចរាល់!');
                         setTimeout(() => setActionNotice(''), 3000);
@@ -1704,13 +1704,13 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     <div>
                       <span className="text-xs font-bold text-yellow-300 block">📌 POST 3: លក់ជូនសាលា (B2B)</span>
                       <p className="text-[11px] text-purple-200/70 line-clamp-3">
-                        «បង្កើនគុណភាពនៃការបង្រៀនក្នុងសាលារបស់លោកអ្នកជាមួយ AC-Kahoot Campus Edition! ដាក់ Logo សាលាផ្ទាល់...»
+                        «បង្កើនគុណភាពនៃការបង្រៀនក្នុងសាលារបស់លោកអ្នកជាមួយ AC-GAME Campus Edition! ដាក់ Logo សាលាផ្ទាល់...»
                       </p>
                     </div>
                     <button
                       onClick={() => {
                         sound.playClick();
-                        const p3 = `🏫 បង្កើនគុណភាពនៃការបង្រៀន និងភាពទាក់ទាញក្នុងថ្នាក់រៀនសម្រាប់សាលារបស់លោកអ្នកជាមួយ 🎯 AC-Kahoot Campus Edition!\n\nបច្ចុប្បន្ន សិស្សជំនាន់ Gen Z ចូលចិត្តការរៀនបែបកម្សាន្ត (Gamification)។ AC-Kahoot ជួយឱ្យលោកគ្រូអ្នកគ្រូក្នុងស្ថាប័នរបស់លោកអ្នក៖\n🔹 បង្កើតបរិយាកាសប្រកួតប្រជែងវិជ្ជមានក្នុងថ្នាក់រៀន\n🔹 វាយតម្លៃសមត្ថភាពសិស្សភ្លាមៗ (Real-time Live Analytics)\n🔹 មិនត្រូវការដំឡើងប្រព័ន្ធ Internet ថ្លៃៗតាមបន្ទប់នីមួយៗ (ដំណើរការលើ Intranet សាលាបាន)\n🔹 អាចដាក់ Logo និង Brand របស់សាលាបានផ្ទាល់ខ្លួន\n\n💼 យើងខ្ញុំផ្ដល់ជូនកញ្ចប់ School License សម្រាប់សាលារៀនគ្រប់កម្រិត ព្រមទាំងការបណ្ដុះបណ្ដាលដល់គ្រូបង្រៀនផ្ទាល់!\n\n📩 ទាក់ទងមកកាន់យើងខ្ញុំឥឡូវនេះដើម្បីណាត់ជួប Demo ផ្ទាល់ ឬតាម Online:\n#EdTech #SchoolManagement #CambodiaEducation #DigitalClassroom #ACKahoot`;
+                        const p3 = `🏫 បង្កើនគុណភាពនៃការបង្រៀន និងភាពទាក់ទាញក្នុងថ្នាក់រៀនសម្រាប់សាលារបស់លោកអ្នកជាមួយ 🎯 AC-GAME Campus Edition!\n\nបច្ចុប្បន្ន សិស្សជំនាន់ Gen Z ចូលចិត្តការរៀនបែបកម្សាន្ត (Gamification)។ AC-GAME ជួយឱ្យលោកគ្រូអ្នកគ្រូក្នុងស្ថាប័នរបស់លោកអ្នក៖\n🔹 បង្កើតបរិយាកាសប្រកួតប្រជែងវិជ្ជមានក្នុងថ្នាក់រៀន\n🔹 វាយតម្លៃសមត្ថភាពសិស្សភ្លាមៗ (Real-time Live Analytics)\n🔹 មិនត្រូវការដំឡើងប្រព័ន្ធ Internet ថ្លៃៗតាមបន្ទប់នីមួយៗ (ដំណើរការលើ Intranet សាលាបាន)\n🔹 អាចដាក់ Logo និង Brand របស់សាលាបានផ្ទាល់ខ្លួន\n\n💼 យើងខ្ញុំផ្ដល់ជូនកញ្ចប់ School License សម្រាប់សាលារៀនគ្រប់កម្រិត ព្រមទាំងការបណ្ដុះបណ្ដាលដល់គ្រូបង្រៀនផ្ទាល់!\n\n📩 ទាក់ទងមកកាន់យើងខ្ញុំឥឡូវនេះដើម្បីណាត់ជួប Demo ផ្ទាល់ ឬតាម Online:\n#EdTech #SchoolManagement #CambodiaEducation #DigitalClassroom #ACKahoot`;
                         navigator.clipboard.writeText(p3);
                         setActionNotice('បានចម្លង Post 3 រួចរាល់!');
                         setTimeout(() => setActionNotice(''), 3000);
@@ -1746,7 +1746,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     <button
                       onClick={() => {
                         sound.playClick();
-                        const pitchText = `🎉 ជំរាបសួរលោកគ្រូ/អ្នកគ្រូ!\nតើលោកគ្រូចង់សាកល្បងប្រើ AC-Kahoot! ដែលជាប្រព័ន្ធល្បែងសិក្សា Quiz ជំនាន់ថ្មី មាន Gemini AI បង្កើតសំណួរក្នុង 5 វិនាទី និងអាចលេងបានទោះគ្មាន Internet មែនទេ?\n👉 ខ្ញុំផ្ដល់ជូន License សាកល្បងឥតគិតថ្លៃ! ប្រសិនបើលោកគ្រូចាប់អារម្មណ៍ ខ្ញុំនឹងផ្ញើ Link ដំឡើងជូនភ្លាមៗបាទ/ចាស។`;
+                        const pitchText = `🎉 ជំរាបសួរលោកគ្រូ/អ្នកគ្រូ!\nតើលោកគ្រូចង់សាកល្បងប្រើ AC-GAME! ដែលជាប្រព័ន្ធល្បែងសិក្សា Quiz ជំនាន់ថ្មី មាន Gemini AI បង្កើតសំណួរក្នុង 5 វិនាទី និងអាចលេងបានទោះគ្មាន Internet មែនទេ?\n👉 ខ្ញុំផ្ដល់ជូន License សាកល្បងឥតគិតថ្លៃ! ប្រសិនបើលោកគ្រូចាប់អារម្មណ៍ ខ្ញុំនឹងផ្ញើ Link ដំឡើងជូនភ្លាមៗបាទ/ចាស។`;
                         navigator.clipboard.writeText(pitchText);
                         setActionNotice('បានចម្លងសារលក់រហ័សសម្រាប់ Telegram រួចរាល់!');
                         setTimeout(() => setActionNotice(''), 3000);
@@ -1772,7 +1772,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     {lang === 'km' ? 'កំណត់លេខសម្ងាត់ Master Admin ថ្មី' : 'Change Master Admin Password'}
                   </h3>
                   <p className="text-xs text-purple-200/70">
-                    {lang === 'km' ? 'ប្តូរលេខសម្ងាត់សម្រាប់គណនី admin@ac-kahoot.edu' : 'Update password for admin@ac-kahoot.edu'}
+                    {lang === 'km' ? 'ប្តូរលេខសម្ងាត់សម្រាប់គណនី admin@AC-GAME.edu' : 'Update password for admin@AC-GAME.edu'}
                   </p>
                 </div>
               </div>
@@ -1913,7 +1913,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
         {/* Footer */}
         <div className="p-4 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-purple-300/70">
-          <span>AC-Kahoot! Enterprise Platform v2.5.0</span>
+          <span>AC-GAME! Enterprise Platform v2.5.0</span>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all"
@@ -1925,3 +1925,4 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
     </div>
   );
 }
+

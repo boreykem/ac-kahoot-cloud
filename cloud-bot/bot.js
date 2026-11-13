@@ -1,9 +1,9 @@
 /**
- * AC-Kahoot! 24/7 Standalone Cloud Telegram Bot & Cryptographic Keygen Service
+ * AC-GAME! 24/7 Standalone Cloud Telegram Bot & Cryptographic Keygen Service
  * Author: KEM BOREY (Platform Owner)
  *
  * This service runs 24/7 in the cloud (e.g. Render, Railway, Glitch, VPS)
- * independently from the local AC-Kahoot host application.
+ * independently from the local AC-GAME host application.
  * You can turn off your PC at home anytime, and this bot will still receive
  * payment slips and allow 1-Click License Key generation directly from your phone!
  */
@@ -259,7 +259,7 @@ async function pollTelegramBot() {
               let tokenData = null;
 
               try {
-                const mainUrl = process.env.MAIN_SERVER_URL || 'https://ac-kahoot.onrender.com';
+                const mainUrl = process.env.MAIN_SERVER_URL || 'https://AC-GAME.onrender.com';
                 const tRes = await fetch(`${mainUrl}/api/auth/telegram-reset/${resetToken}`, {
                   headers: { 'Accept': 'application/json' },
                   signal: AbortSignal.timeout(6000)
@@ -273,7 +273,7 @@ async function pollTelegramBot() {
               }
 
               if (tokenData) {
-                let otpReply = `🔐 <b>លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់ (AC-Kahoot!)</b>\n\n`;
+                let otpReply = `🔐 <b>លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់ (AC-GAME!)</b>\n\n`;
                 otpReply += `សួស្តី <b>${tokenData.userName || senderName}</b>! 🙏\n`;
                 otpReply += `អ្នកបានស្នើសុំប្តូរលេខសម្ងាត់សម្រាប់គណនី៖\n<code>${tokenData.email}</code>\n\n`;
                 otpReply += `🔑 <b>លេខកូដផ្ទៀងផ្ទាត់ OTP ៦ ខ្ទង់របស់អ្នកគឺ៖</b>\n\n`;
@@ -302,7 +302,7 @@ async function pollTelegramBot() {
             };
             saveStates(userStates);
 
-            let reply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
+            let reply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-GAME! Official Bot</b>\n\n`;
             reply += `សួស្តី <b>${senderName}</b>! 🙏\n\n`;
             if (userStates[chatId].hwid) {
               reply += `💻 <b>Hardware Machine ID របស់អ្នក៖</b>\n<code>${userStates[chatId].hwid}</code>\n\n`;
@@ -402,7 +402,7 @@ async function pollTelegramBot() {
               saveStates(userStates);
             }
 
-            let textReply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
+            let textReply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-GAME! Official Bot</b>\n\n`;
             textReply += `សួស្តី <b>${senderName}</b>! 🙏\n`;
             if (extractedHwid || userStates[chatId]?.hwid) {
               textReply += `💻 <b>Machine ID៖</b> <code>${userStates[chatId]?.hwid || extractedHwid}</code>\n\n`;
@@ -464,7 +464,7 @@ async function pollTelegramBot() {
               planPrice = botConfig.price1Year || '$2.5';
             }
 
-            let reply = `🎉 <b>ព័ត៌មានបញ្ជាទិញ AC-Kahoot! Pro</b>\n\n`;
+            let reply = `🎉 <b>ព័ត៌មានបញ្ជាទិញ AC-GAME! Pro</b>\n\n`;
             reply += `🌟 <b>គម្រោងដែលបានជ្រើសរើស៖</b> ${planTitle}\n`;
             reply += `💵 <b>ចំនួនទឹកប្រាក់ត្រូវបង់៖</b> <b>${planPrice}</b>\n`;
             if (userStates[chatId].hwid) {
@@ -565,10 +565,10 @@ async function pollTelegramBot() {
             await sendTelegramMessage(chatId, `✅ <b>បង្កើត និងផ្ញើ Key រួចរាល់!</b>\n<code>${keyStr}</code>\nHWID: <code>${customerHwid}</code>\nKey ត្រូវបានបញ្ជូនទៅ Telegram អតិថិជនរួចរាល់។`, 'HTML');
 
             let successMsg = `🎉 <b>ការបញ្ជាទិញទទួលបានជោគជ័យ!</b>\n\n`;
-            successMsg += `អរគុណច្រើនដែលបានគាំទ្រប្រព័ន្ធគ្រប់គ្រងវិញ្ញាសា AC-Kahoot! 🙏\n`;
+            successMsg += `អរគុណច្រើនដែលបានគាំទ្រប្រព័ន្ធគ្រប់គ្រងវិញ្ញាសា AC-GAME! 🙏\n`;
             successMsg += `នេះជា <b>License Key</b> របស់អ្នកសម្រាប់គម្រោង <b>${typeLabels[type]}</b>៖\n\n`;
             successMsg += `🔑 <code>${keyStr}</code>\n\n`;
-            successMsg += `👉 <i>សូម Copy លេខកូដនេះ ទៅកាន់កម្មវិធី AC-Kahoot! ត្រង់ផ្ទាំងបញ្ចូល Key រួចចុច "បញ្ជាក់ Activation"។</i>`;
+            successMsg += `👉 <i>សូម Copy លេខកូដនេះ ទៅកាន់កម្មវិធី AC-GAME! ត្រង់ផ្ទាំងបញ្ចូល Key រួចចុច "បញ្ជាក់ Activation"។</i>`;
 
             await sendTelegramMessage(customerChatId, successMsg, 'HTML');
           }
@@ -602,10 +602,11 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`🚀 AC-Kahoot 24/7 Cloud Telegram Bot is RUNNING!`);
+  console.log(`🚀 AC-GAME 24/7 Cloud Telegram Bot is RUNNING!`);
   console.log(`🌐 Health endpoint on port ${PORT}`);
   console.log(`🤖 Connected Bot: @${botConfig.botUsername}`);
   console.log(`👤 Admin: ${botConfig.adminTelegram} (Chat ID: ${botConfig.adminChatId || 'Not connected yet - send /admin to bot'})`);
   console.log(`====================================================`);
   pollTelegramBot();
 });
+
