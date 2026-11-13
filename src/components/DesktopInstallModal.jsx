@@ -8,12 +8,27 @@ export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPr
   const downloadDesktopShortcut = () => {
     sound.playCorrect();
     const currentOrigin = window.location.origin;
-    const shortcutContent = `[InternetShortcut]\r\nURL=${currentOrigin}\r\nIconIndex=0\r\nIconFile=${currentOrigin}/favicon.ico\r\n`;
-    const blob = new Blob([shortcutContent], { type: 'application/octet-stream' });
+    const launcherHtml = `<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="utf-8">
+  <title>AC-Kahoot! App</title>
+  <link rel="icon" href="${currentOrigin}/favicon.ico">
+  <meta http-equiv="refresh" content="0; url=${currentOrigin}">
+</head>
+<body style="background:#1e073b;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+  <div style="text-align:center;">
+    <h1 style="font-size:24px;margin-bottom:8px;">🚀 កំពុងបើក AC-Kahoot...</h1>
+    <p style="color:#c084fc;">Loading your interactive classroom game...</p>
+  </div>
+  <script>window.location.replace("${currentOrigin}");</script>
+</body>
+</html>`;
+    const blob = new Blob([launcherHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'AC-Kahoot.url';
+    a.download = 'AC-Kahoot-App.html';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -104,8 +119,8 @@ export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPr
             </div>
             <p className="text-xs text-purple-200/80 leading-relaxed">
               {lang === 'km'
-                ? 'ទាញយក File Shortcut (.url) រួចអូសទាញដាក់លើផ្ទាំង Desktop របស់កុំព្យូទ័រ ដើម្បីចុចបើកកម្មវិធីបានភ្លាមៗគ្រប់ពេល។'
-                : 'Download the shortcut file and place it on your Windows desktop for quick 1-click access.'}
+                ? 'ទាញយក File Shortcut រួចអូសទាញដាក់លើផ្ទាំង Desktop របស់កុំព្យូទ័រ ដើម្បីចុចបើកកម្មវិធីបានភ្លាមៗ ១ ឃ្លីកគ្រប់ពេល។'
+                : 'Download the shortcut launcher and place it on your Windows desktop for instant 1-click access.'}
             </p>
             <button
               type="button"
@@ -113,7 +128,7 @@ export default function DesktopInstallModal({ isOpen, onClose, lang = 'km', onPr
               className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Download className="w-4 h-4 text-yellow-300" />
-              <span>{lang === 'km' ? '📥 ទាញយក Desktop Shortcut (.url)' : '📥 Download Desktop Shortcut'}</span>
+              <span>{lang === 'km' ? '📥 ទាញយក Desktop Shortcut (1-Click Launch)' : '📥 Download Desktop Shortcut'}</span>
             </button>
           </div>
         </div>
