@@ -225,6 +225,52 @@ const httpServer = createServer(app);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ac-kahoot-super-secret-key-2026';
 
+// Helper to escape special regex characters and prevent ReDoS / NoSQL Regex Injections
+export function escapeRegex(str) {
+  return typeof str === 'string' ? str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+}
+
+// In-Memory Sliding-Window Rate Limiter (Protects against brute force and DDoS)
+const rateLimitMap = new Map();
+export const createRateLimiter = ({ windowMs = 60000, max = 15, message = 'Too many requests' }) => {
+  return (req, res, next) => {
+    const rawIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const clientIp = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : '127.0.0.1';
+    const key = `${req.path}:${clientIp}`;
+    const now = Date.now();
+    const entry = rateLimitMap.get(key) || { count: 0, resetTime: now + windowMs };
+
+    if (now > entry.resetTime) {
+      entry.count = 0;
+      entry.resetTime = now + windowMs;
+    }
+
+    entry.count++;
+    rateLimitMap.set(key, entry);
+
+    // Periodic map cleanup
+    if (rateLimitMap.size > 10000) {
+      for (const [k, v] of rateLimitMap) {
+        if (now > v.resetTime) rateLimitMap.delete(k);
+      }
+    }
+
+    if (entry.count > max) {
+      const waitSec = Math.ceil((entry.resetTime - now) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `${message} (សូមរង់ចាំ ${waitSec} វិនាទីសិន មុនព្យាយាមម្តងទៀត)`
+      });
+    }
+
+    next();
+  };
+};
+
+const loginLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 12, message: '⚠️ ការព្យាយាមចូលគណនីច្រើនដងពេក!' });
+const registerLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 6, message: '⚠️ ការបង្កើតគណនីញឹកញាប់ពេក!' });
+const forgotLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 5, message: '⚠️ ការស្នើសុំ OTP ច្រើនដងពេក!' });
+
 // JWT Verification Middleware (Cryptographic Token Required)
 export const verifyToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -486,8 +532,8 @@ function saveQuizzes(quizzes) {
   }
 }
 
-// Auth Endpoints
-app.post('/api/auth/register', async (req, res) => {
+// Auth Endpoints (Protected by Rate Limiter)
+app.post('/api/auth/register', registerLimiter, async (req, res) => {
   const { name, email, password, school, avatar, licenseKey, phone } = req.body;
   const cleanName = (name || '').trim();
   const cleanEmail = (email || '').toLowerCase().trim();
@@ -497,9 +543,9 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ success: false, message: 'សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់!' });
   }
 
-  const existing = await User.findOne({ email: cleanEmail });
+  const existing = await User.findOne({ email: new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') });
   if (existing) {
-    return res.status(400).json({ success: false, message: 'អ៊ីមែលនេះមានគណនីរួចហើយ!' });
+    return res.status(400).json({ success: false, message: 'អ៊ីមែលនេះមានគណនីក្នុងប្រព័ន្ធរួចហើយ! សូមចូលគណនី។' });
   }
 
   const pricingConfig = loadBotPricing();
@@ -543,7 +589,7 @@ app.post('/api/auth/register', async (req, res) => {
   res.json({ success: true, user: safeUser, token, message: '🎉 បានចុះឈ្មោះបង្កើតគណនីដោយជោគជ័យ!' });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
   const cleanEmail = (email || '').toLowerCase().trim();
   const cleanPassword = (password || '').trim();
@@ -712,15 +758,15 @@ async function sendOtpEmail(targetEmail, otpCode, userName) {
   return { sent: false, error: 'No SMTP credentials' };
 }
 
-// Request Password Reset OTP
-app.post('/api/auth/forgot-password', async (req, res) => {
+// Request Password Reset OTP (Rate Limited)
+app.post('/api/auth/forgot-password', forgotLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'សូមបញ្ចូលអ៊ីមែលរបស់អ្នក!' });
   }
 
   const cleanEmail = email.toLowerCase().trim();
-  const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
+  const user = await User.findOne({ email: new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') });
   if (!user) {
     return res.status(404).json({ success: false, message: 'មិនមានគណនីដែលមានអ៊ីមែលនេះនៅក្នុងប្រព័ន្ធឡើយ!' });
   }
@@ -826,7 +872,7 @@ app.post('/api/auth/verify-reset-otp', async (req, res) => {
 
   const cleanEmail = email.toLowerCase().trim();
   const cleanOtp = otp.trim();
-  const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
+  const user = await User.findOne({ email: new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') });
   if (!user) {
     return res.status(404).json({ success: false, message: 'រកមិនឃើញគណនីនេះទេ!' });
   }
@@ -1150,7 +1196,7 @@ app.post('/api/license/activate-hwid', async (req, res) => {
   // Also upgrade user if email is provided
   if (email) {
     const cleanEmail = email.toLowerCase().trim();
-    const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
+    const user = await User.findOne({ email: new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') });
     if (user) {
       user.license = result.license.plan;
       user.boundDeviceId = result.license.hwid;
@@ -1329,7 +1375,7 @@ async function getValidatedUser(userId, userEmail) {
   if (!userId && !userEmail) return null;
   let user = null;
   if (userEmail) {
-    user = await User.findOne({ email: new RegExp(`^${userEmail.trim()}$`, 'i') });
+    user = await User.findOne({ email: new RegExp(`^${escapeRegex(userEmail.trim())}$`, 'i') });
   }
   if (!user && userId) {
     user = await User.findOne({ id: userId });
@@ -1429,7 +1475,7 @@ app.post('/api/quizzes', async (req, res) => {
     if (!isPro) {
       const emailToCheck = user?.email || newQuiz.authorEmail;
       const userQuizzesCount = emailToCheck 
-        ? await Quiz.countDocuments({ authorEmail: new RegExp(`^${emailToCheck}$`, 'i') }) 
+        ? await Quiz.countDocuments({ authorEmail: new RegExp(`^${escapeRegex(emailToCheck)}$`, 'i') }) 
         : 0;
       if (userQuizzesCount >= 10) {
         return res.status(403).json({ 
@@ -1700,10 +1746,21 @@ app.post('/api/generate-quiz', async (req, res) => {
   const { topic, lessonText, level = 'university', count = 5, apiKey, modelTier = 'pro', testType = 'post-test', userEmail, userId } = req.body;
 
   let user = null;
-  if (userId && userEmail) {
+
+  // Authenticate user session via Bearer JWT first
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      user = await getValidatedUser(decoded.id, decoded.email);
+    } catch (_) {}
+  }
+
+  if (!user && userId && userEmail) {
     user = await getValidatedUser(userId, userEmail);
-  } else if (userEmail) {
-    user = await User.findOne({ email: new RegExp(`^${userEmail}$`, 'i') });
+  } else if (!user && userEmail) {
+    user = await User.findOne({ email: new RegExp(`^${escapeRegex(userEmail.trim())}$`, 'i') });
     if (user) {
       if ((user.license === 'pro_monthly' || user.license === 'pro_annual') && user.licenseExpiryDate && Date.now() > user.licenseExpiryDate.getTime()) {
         user.license = 'free';
@@ -1734,8 +1791,15 @@ app.post('/api/generate-quiz', async (req, res) => {
   const defaultSystemKey = currentBotPricing.geminiApiKey || process.env.GEMINI_API_KEY || DEFAULT_TRIAL_GEMINI_KEY;
 
   if (!activeApiKey) {
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'សូមចូលគណនីគ្រូ (Login) ជាមុនសិន ដើម្បីប្រើប្រាស់កូតា AI ឥតគិតថ្លៃ ២៥ លើកពីប្រព័ន្ធ ឬភ្ជាប់ Gemini API Key ផ្ទាល់ខ្លួន!'
+      });
+    }
+
     // Option 1 (Hybrid Model): 25 free AI generations from server key, then require personal free key for unlimited
-    const currentUsage = user ? (user.aiGenerationsCount || 0) : 0;
+    const currentUsage = user.aiGenerationsCount || 0;
     if (currentUsage >= FREE_SERVER_AI_QUOTA) {
       return res.status(403).json({
         success: false,
