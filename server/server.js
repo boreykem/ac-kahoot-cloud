@@ -2582,7 +2582,10 @@ async function startServer() {
         }
       }
     }));
-    app.get('*', (req, res) => {
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+        return next();
+      }
       res.sendFile(path.join(clientDistPath, 'index.html'), {
         headers: {
           'Cache-Control': 'no-cache, must-revalidate',
