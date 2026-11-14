@@ -4,6 +4,7 @@ import { sound } from '../utils/audioEngine';
 import { translations } from '../utils/i18n';
 import AccountSwitcherDropdown from './AccountSwitcherDropdown.jsx';
 import DesktopInstallModal from './DesktopInstallModal.jsx';
+import TelegramChannelModal from './TelegramChannelModal.jsx';
 
 export default function Header({ 
   currentView, 
@@ -51,6 +52,7 @@ export default function Header({
     );
   });
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const levelMenuRef = useRef(null);
 
   const t = translations[lang] || translations.km;
@@ -360,6 +362,17 @@ export default function Header({
 
         {/* Right Action Controls: Install, Admin & Join Game */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Telegram Channel Button */}
+          <button
+            type="button"
+            onClick={() => { sound.playClick(); setIsChannelModalOpen(true); }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-sky-600/80 to-blue-700/80 hover:from-sky-500 hover:to-blue-600 text-white border border-sky-400/40 text-xs sm:text-sm font-semibold font-khmer shadow-md transition-all hover:scale-105 active:scale-95"
+            title="Telegram Channel ផ្លូវការ @ac_mart"
+          >
+            <span className="text-sm">📢</span>
+            <span className="hidden sm:inline">ឆានែល @ac_mart</span>
+          </button>
+
           {/* Desktop Install Button - Desktop Only (Hidden on Mobile) */}
           {!isStandalone && !isInstalled && (
             <button
@@ -406,6 +419,12 @@ export default function Header({
           try { localStorage.setItem('ac_game_pwa_installed', 'true'); } catch (e) {}
           setIsInstallModalOpen(false);
         }}
+      />
+      {/* Telegram Channel Modal */}
+      <TelegramChannelModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        lang={lang}
       />
     </header>
   );

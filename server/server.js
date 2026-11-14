@@ -318,6 +318,7 @@ const QUIZ_FILE = path.join(__dirname, 'quizData.json');
 const USERS_FILE = path.join(__dirname, 'userData.json');
 const BOT_PRICING_FILE = path.join(__dirname, 'botPricing.json');
 const TELEGRAM_STATES_FILE = path.join(__dirname, 'telegramUserStates.json');
+const CHANNEL_SUBSCRIBERS_FILE = path.join(__dirname, 'channelSubscribers.json');
 
 // ✅ Single unified startup: connect DB once, then seed + migrate all data in order
 const initServer = async () => {
@@ -416,6 +417,25 @@ function saveBotPricing(data) {
     fs.writeFileSync(BOT_PRICING_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
     console.error('Error saving botPricing.json', e);
+  }
+}
+
+function loadChannelSubscribers() {
+  try {
+    if (fs.existsSync(CHANNEL_SUBSCRIBERS_FILE)) {
+      return JSON.parse(fs.readFileSync(CHANNEL_SUBSCRIBERS_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Error reading channelSubscribers.json', e);
+  }
+  return { subscribers: [], logs: [], stats: { totalJoined: 0, totalLeft: 0, activeCount: 0, lastUpdated: null } };
+}
+
+function saveChannelSubscribers(data) {
+  try {
+    fs.writeFileSync(CHANNEL_SUBSCRIBERS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error saving channelSubscribers.json', e);
   }
 }
 
@@ -2917,6 +2937,79 @@ app.post('/api/payment/notify', async (req, res) => {
   }
 });
 
+// Public endpoint to get basic channel stats for frontend visitor
+app.get('/api/channel/info', async (req, res) => {
+  const token = currentBotPricing.botToken || process.env.TELEGRAM_BOT_TOKEN;
+  const channelUsername = '@ac_mart';
+  let memberCount = 39;
+
+  if (token) {
+    try {
+      const resp = await fetch(`https://api.telegram.org/bot${token}/getChatMemberCount?chat_id=${channelUsername}`);
+      if (resp.ok) {
+        const d = await resp.json();
+        if (d.ok && typeof d.result === 'number') {
+          memberCount = d.result;
+        }
+      }
+    } catch {}
+  }
+
+  res.json({
+    success: true,
+    channelUsername: 'ac_mart',
+    channelUrl: 'https://t.me/ac_mart',
+    channelTitle: 'AC Mart Programing',
+    memberCount
+  });
+});
+
+// Protected endpoint for Super Admin to view detailed channel tracking & subscribers CRM
+app.get('/api/admin/channel-subscribers', verifyToken, isAdmin, async (req, res) => {
+  const token = currentBotPricing.botToken || process.env.TELEGRAM_BOT_TOKEN;
+  const channelUsername = '@ac_mart';
+  let liveMemberCount = 39;
+  let isBotAdmin = false;
+
+  if (token) {
+    try {
+      const respCount = await fetch(`https://api.telegram.org/bot${token}/getChatMemberCount?chat_id=${channelUsername}`);
+      if (respCount.ok) {
+        const d = await respCount.json();
+        if (d.ok && typeof d.result === 'number') {
+          liveMemberCount = d.result;
+        }
+      }
+
+      const respAdmins = await fetch(`https://api.telegram.org/bot${token}/getChatAdministrators?chat_id=${channelUsername}`);
+      if (respAdmins.ok) {
+        const ad = await respAdmins.json();
+        if (ad.ok && Array.isArray(ad.result)) {
+          isBotAdmin = ad.result.some(a => a.user?.is_bot && a.user?.username === (currentBotPricing.botUsername || 'ac_mart_programer_developer_bot'));
+        }
+      }
+    } catch {}
+  }
+
+  const store = loadChannelSubscribers();
+  res.json({
+    success: true,
+    channel: {
+      username: 'ac_mart',
+      title: 'AC Mart Programing',
+      url: 'https://t.me/ac_mart',
+      liveMemberCount,
+      isBotAdmin
+    },
+    stats: {
+      ...store.stats,
+      liveMemberCount
+    },
+    subscribers: store.subscribers || [],
+    logs: store.logs || []
+  });
+});
+
 async function answerCallbackQuery(callbackQueryId, text = '') {
   const token = currentBotPricing.botToken || process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
@@ -2968,7 +3061,8 @@ async function pollTelegramBot() {
   }
 
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${lastTelegramUpdateId + 1}&timeout=10`);
+    const allowedUpdates = JSON.stringify(["message", "callback_query", "chat_member", "my_chat_member"]);
+    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${lastTelegramUpdateId + 1}&timeout=10&allowed_updates=${encodeURIComponent(allowedUpdates)}`);
     if (res.ok) {
       const data = await res.json();
       if (data.ok && Array.isArray(data.result)) {
@@ -2977,6 +3071,128 @@ async function pollTelegramBot() {
           currentBotPricing = loadBotPricing();
           telegramUserStates = loadTelegramStates();
           const adminUser = (currentBotPricing.adminTelegram || 'KEMBOREY').replace(/^@/, '').trim();
+
+          // ----------------------------------------------------
+          // CASE 0: CHANNEL CHAT MEMBER UPDATE (JOIN / LEAVE / UNSUBSCRIBE TRACKING)
+          // ----------------------------------------------------
+          if (update.chat_member) {
+            try {
+              const cm = update.chat_member;
+              const chat = cm.chat || {};
+              const chatUsername = chat.username ? `@${chat.username}` : '@ac_mart';
+              const chatTitle = chat.title || 'AC Mart Programing';
+
+              const targetUser = cm.new_chat_member?.user || cm.from || {};
+              const oldStatus = cm.old_chat_member?.status;
+              const newStatus = cm.new_chat_member?.status;
+
+              const fullName = [targetUser.first_name, targetUser.last_name].filter(Boolean).join(' ') || 'អ្នកប្រើប្រាស់ Telegram';
+              const userHandle = targetUser.username ? `@${targetUser.username}` : 'គ្មាន Username';
+              const userId = targetUser.id;
+
+              const isJoin = (oldStatus === 'left' || oldStatus === 'kicked' || !oldStatus) && 
+                             (newStatus === 'member' || newStatus === 'administrator' || newStatus === 'restricted');
+                             
+              const isLeave = (oldStatus === 'member' || oldStatus === 'administrator' || oldStatus === 'restricted') && 
+                              (newStatus === 'left' || newStatus === 'kicked');
+
+              if (isJoin || isLeave) {
+                const action = isJoin ? 'join' : 'leave';
+                const store = loadChannelSubscribers();
+                
+                // Add to activity logs (keep latest 500 logs)
+                const logEntry = {
+                  id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                  userId,
+                  name: fullName,
+                  username: targetUser.username || '',
+                  action,
+                  chatTitle,
+                  chatUsername,
+                  date: new Date().toISOString()
+                };
+                store.logs = [logEntry, ...(store.logs || [])].slice(0, 500);
+
+                // Update subscriber record
+                store.subscribers = store.subscribers || [];
+                const existingIdx = store.subscribers.findIndex(s => s.id === userId);
+                if (isJoin) {
+                  if (existingIdx >= 0) {
+                    store.subscribers[existingIdx] = {
+                      ...store.subscribers[existingIdx],
+                      name: fullName,
+                      username: targetUser.username || '',
+                      status: 'active',
+                      lastActionAt: new Date().toISOString()
+                    };
+                  } else {
+                    store.subscribers.unshift({
+                      id: userId,
+                      name: fullName,
+                      username: targetUser.username || '',
+                      joinedAt: new Date().toISOString(),
+                      status: 'active'
+                    });
+                  }
+                } else if (isLeave) {
+                  if (existingIdx >= 0) {
+                    store.subscribers[existingIdx].status = 'left';
+                    store.subscribers[existingIdx].leftAt = new Date().toISOString();
+                  }
+                }
+
+                // Recalculate stats
+                const activeCount = store.subscribers.filter(s => s.status === 'active').length;
+                const totalJoined = store.logs.filter(l => l.action === 'join').length;
+                const totalLeft = store.logs.filter(l => l.action === 'leave').length;
+                store.stats = {
+                  totalJoined,
+                  totalLeft,
+                  activeCount,
+                  lastUpdated: new Date().toISOString()
+                };
+                saveChannelSubscribers(store);
+
+                // Notify Super Admin on Telegram Real-time
+                if (currentBotPricing.adminChatId) {
+                  const icon = isJoin ? '➕' : '➖';
+                  const actionKhmer = isJoin ? 'បានចូលរួម (Joined)' : 'បានចាកចេញ (Unsubscribed / Left)';
+                  const notiMsg = 
+                    `📢 <b>[Telegram Channel ${chatUsername}]</b>\n\n` +
+                    `${icon} <b>សមាជិក${actionKhmer}៖</b>\n` +
+                    `👤 <b>ឈ្មោះ៖</b> <b>${fullName}</b>\n` +
+                    `🔗 <b>Username៖</b> ${userHandle}\n` +
+                    `🆔 <b>User ID៖</b> <code>${userId}</code>\n` +
+                    `👥 <b>សមាជិកសកម្មតាមដាន៖</b> <code>${activeCount} នាក់</code>\n` +
+                    `🕒 <b>កាលបរិច្ឆេទ៖</b> ${new Date().toLocaleString('km-KH', { timeZone: 'Asia/Phnom_Penh' })}`;
+                  
+                  await sendTelegramMessage(currentBotPricing.adminChatId, notiMsg, 'HTML');
+                }
+              }
+            } catch (memberErr) {
+              console.warn('[Channel Tracking Error]', memberErr.message);
+            }
+            continue;
+          }
+
+          // ----------------------------------------------------
+          // CASE 0.1: MY CHAT MEMBER UPDATE (BOT ADDED AS ADMIN IN CHANNEL)
+          // ----------------------------------------------------
+          if (update.my_chat_member) {
+            try {
+              const mcm = update.my_chat_member;
+              const chat = mcm.chat || {};
+              const chatTitle = chat.title || 'AC Mart Programing';
+              const newStatus = mcm.new_chat_member?.status;
+              if (newStatus === 'administrator' && currentBotPricing.adminChatId) {
+                const adminNoti = `🎉 <b>Bot ត្រូវបានភ្ជាប់ជា Admin ក្នុង Channel៖ ${chatTitle}!</b>\nប្រព័ន្ធចាប់ផ្តើមតាមដានសមាជិក Join & Unsubscribe ដោយស្វ័យប្រវត្តិចាប់ពីពេលនេះតទៅ! 🚀`;
+                await sendTelegramMessage(currentBotPricing.adminChatId, adminNoti, 'HTML');
+              }
+            } catch (mcmErr) {
+              console.warn('[MyChatMember Error]', mcmErr.message);
+            }
+            continue;
+          }
 
           // ----------------------------------------------------
           // CASE 1: USER SENDS /start, PHOTO (SLIP), OR TEXT MESSAGE (STEP 1: CHOOSE PLAN)
@@ -3073,6 +3289,9 @@ async function pollTelegramBot() {
                 ]);
               }
               inlineKeyboard.push([
+                { text: `📢 ចូលរួមឆានែល AC-MART (@ac_mart)`, url: `https://t.me/ac_mart` }
+              ]);
+              inlineKeyboard.push([
                 { text: `💬 ឆាតទាក់ទងលោកគ្រូ បូរី (@${adminUser}) ផ្ទាល់`, url: `https://t.me/${adminUser}` }
               ]);
 
@@ -3165,6 +3384,9 @@ async function pollTelegramBot() {
                   { text: `👑 Pro ពេញមួយជីវិត (${currentBotPricing.priceLifetime})`, callback_data: `plan:lifetime:${curHwid}` }
                 ]);
               }
+              inlineKeyboard.push([
+                { text: `📢 ចូលរួមឆានែល AC-MART (@ac_mart)`, url: `https://t.me/ac_mart` }
+              ]);
               inlineKeyboard.push([
                 { text: `💬 ឆាតទាក់ទងលោកគ្រូ បូរី (@${adminUser}) ផ្ទាល់`, url: `https://t.me/${adminUser}` }
               ]);

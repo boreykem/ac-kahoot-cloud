@@ -58,6 +58,32 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
   const [generatingLicense, setGeneratingLicense] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
 
+  // Telegram Channel CRM State
+  const [channelData, setChannelData] = useState({
+    channel: { username: 'ac_mart', title: 'AC Mart Programing', url: 'https://t.me/ac_mart', liveMemberCount: 39, isBotAdmin: false },
+    stats: { totalJoined: 0, totalLeft: 0, activeCount: 0 },
+    subscribers: [],
+    logs: []
+  });
+  const [loadingChannel, setLoadingChannel] = useState(false);
+
+  const fetchChannelData = async () => {
+    setLoadingChannel(true);
+    try {
+      const res = await fetch('/api/admin/channel-subscribers', {
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setChannelData(data);
+      }
+    } catch (e) {
+      console.warn('Error fetching channel data', e);
+    } finally {
+      setLoadingChannel(false);
+    }
+  };
+
   // Password reset for specific teacher
   const [resetTargetUser, setResetTargetUser] = useState(null);
   const [newTargetPassword, setNewTargetPassword] = useState('');
@@ -581,6 +607,18 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
           >
             <Share2 className="w-4 h-4" />
             <span>{lang === 'km' ? '🎯 កញ្ចប់ទីផ្សារ & វីដេអូ (Marketing Kit)' : 'Marketing & Sales Kit'}</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('channel'); fetchChannelData(); }}
+            className={`pb-3 flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
+              activeTab === 'channel'
+                ? 'border-yellow-400 text-yellow-300 font-bold'
+                : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            <Megaphone className="w-4 h-4 text-sky-400" />
+            <span>{lang === 'km' ? '📢 Telegram Channel (@ac_mart)' : 'Telegram Channel CRM'}</span>
           </button>
 
           <button
@@ -1856,6 +1894,179 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                   <span>{lang === 'km' ? 'រក្សាទុកលេខសម្ងាត់ថ្មី (Save Password)' : 'Save Password'}</span>
                 </button>
               </form>
+            </div>
+          ) : activeTab === 'channel' ? (
+            <div className="space-y-6 animate-scale-in">
+              {/* Header Card with Channel Info & Live Status */}
+              <div className="glass-panel p-5 rounded-3xl border border-sky-500/40 bg-gradient-to-r from-sky-950/60 via-indigo-950/60 to-purple-950/60 flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white text-2xl shadow-lg border border-sky-400/40 overflow-hidden shrink-0">
+                    <img src="/ac-logo.jpg" alt="AC Mart" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-black text-white font-['Outfit']">
+                        {channelData.channel?.title || 'AC Mart Programing'}
+                      </h3>
+                      <span className="text-xs bg-sky-500/20 text-sky-300 px-2.5 py-0.5 rounded-full border border-sky-400/40 font-mono font-bold">
+                        @{channelData.channel?.username || 'ac_mart'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-purple-200/80 mt-1">
+                      ឆែករំលែកកម្មវិធី កុំព្យូទ័រ adroid ios! (មិត្តជួយមិត្ត) • តាមដានសមាជិក Join & Unsubscribe ដោយស្វ័យប្រវត្តិ
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchChannelData}
+                    disabled={loadingChannel}
+                    className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="ទាញយកទិន្នន័យថ្មីពី Telegram"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingChannel ? 'animate-spin text-yellow-300' : ''}`} />
+                    <span>{loadingChannel ? 'កំពុងពិនិត្យ...' : 'Refresh ថ្មី'}</span>
+                  </button>
+                  <a
+                    href="https://t.me/ac_mart"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>បើក Channel</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* 4 Metric Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div className="p-4 rounded-2xl bg-sky-950/40 border border-sky-400/30 space-y-1">
+                  <span className="text-[11px] font-bold text-sky-300">👥 សមាជិក Channel សរុប</span>
+                  <p className="text-2xl font-black text-white font-['Outfit']">
+                    {channelData.stats?.liveMemberCount || channelData.channel?.liveMemberCount || 39} <span className="text-xs font-normal text-sky-200">នាក់</span>
+                  </p>
+                  <span className="text-[10px] text-sky-300/70 block">Live ពី Telegram API</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-400/30 space-y-1">
+                  <span className="text-[11px] font-bold text-emerald-300">➕ សមាជិកទើបចូលរួម (Joins)</span>
+                  <p className="text-2xl font-black text-emerald-400 font-['Outfit']">
+                    {channelData.stats?.totalJoined || 0}
+                  </p>
+                  <span className="text-[10px] text-emerald-300/70 block">តាមដានតាម Bot API</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-red-950/40 border border-red-400/30 space-y-1">
+                  <span className="text-[11px] font-bold text-red-300">➖ សមាជិកចាកចេញ (Unsubscribed)</span>
+                  <p className="text-2xl font-black text-red-400 font-['Outfit']">
+                    {channelData.stats?.totalLeft || 0}
+                  </p>
+                  <span className="text-[10px] text-red-300/70 block">ដឹងឈ្មោះ & ម៉ោងចាកចេញ</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-purple-950/40 border border-purple-400/30 space-y-1">
+                  <span className="text-[11px] font-bold text-purple-300">⚡ ស្ថានភាព Bot ក្នុង Channel</span>
+                  <p className="text-sm font-bold mt-1 text-white flex items-center gap-1.5">
+                    {channelData.channel?.isBotAdmin ? (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> ជា Admin រួចរាល់
+                      </span>
+                    ) : (
+                      <span className="text-yellow-300 flex items-center gap-1">
+                        ⚠️ ត្រូវការ Add Bot
+                      </span>
+                    )}
+                  </p>
+                  <span className="text-[10px] text-purple-200/70 block">
+                    {channelData.channel?.isBotAdmin ? 'តាមដាន Real-time ២៤/៧' : 'ចុចមើលការណែនាំខាងក្រោម'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bot Administrator Guide Notice (If not admin) */}
+              {!channelData.channel?.isBotAdmin && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/50 via-purple-950/50 to-black/50 border border-yellow-500/40 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">💡</span>
+                    <h4 className="text-xs font-bold text-yellow-300">
+                      ជំហានដើម្បីឱ្យ Bot ចាប់ឈ្មោះអ្នក Join & Leave ដោយស្វ័យប្រវត្តិ៖
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-purple-200/80 leading-relaxed">
+                    ១. បើក <strong>Telegram</strong> រួចចូលទៅកាន់ Channel <strong>@ac_mart</strong><br/>
+                    ២. ចុចលើឈ្មោះ Channel ខាងលើ ➡️ ចុច <strong>Manage Channel</strong> ➡️ <strong>Administrators</strong><br/>
+                    ៣. ចុច <strong>Add Administrator</strong> ➡️ ស្វែងរក Bot <strong>@ac_mart_programer_developer_bot</strong> រួចចុច Save។<br/>
+                    <em>(បន្ទាប់ពី Add រួច រាល់ពេលមានអ្នក Join ឬ Unsubscribe នោះ Bot នឹងផ្ញើសារប្រាប់លោកគ្រូភ្លាមៗ និងកត់ត្រាចូលតារាងខាងក្រោម!)</em>
+                  </p>
+                </div>
+              )}
+
+              {/* Activity Log Table */}
+              <div className="glass-panel p-5 rounded-3xl border border-white/10 bg-black/40 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-sky-400" />
+                    <h4 className="text-sm font-bold text-white">
+                      កំណត់ហេតុសកម្មភាពសមាជិក (Real-time Member Activity Logs)
+                    </h4>
+                  </div>
+                  <span className="text-[11px] text-purple-300">
+                    សរុប {channelData.logs?.length || 0} កំណត់ត្រា
+                  </span>
+                </div>
+
+                {channelData.logs && channelData.logs.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-purple-300/80 text-[11px]">
+                          <th className="pb-2 pl-2">សកម្មភាព</th>
+                          <th className="pb-2">ឈ្មោះសមាជិក</th>
+                          <th className="pb-2">Telegram Username</th>
+                          <th className="pb-2">User ID</th>
+                          <th className="pb-2 pr-2 text-right">កាលបរិច្ឆេទ & ម៉ោង</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {channelData.logs.map((log) => {
+                          const isJoin = log.action === 'join';
+                          return (
+                            <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                              <td className="py-2.5 pl-2">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  isJoin 
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' 
+                                    : 'bg-red-500/20 text-red-300 border border-red-400/40'
+                                }`}>
+                                  {isJoin ? '➕ ចូលរួម (Joined)' : '➖ ចាកចេញ (Left)'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 font-bold text-white">{log.name}</td>
+                              <td className="py-2.5 text-sky-300 font-mono">
+                                {log.username ? `@${log.username}` : <span className="text-gray-500">គ្មាន</span>}
+                              </td>
+                              <td className="py-2.5 text-gray-400 font-mono text-[11px]">{log.userId}</td>
+                              <td className="py-2.5 pr-2 text-right text-gray-300 text-[11px]">
+                                {new Date(log.date).toLocaleString('km-KH', { timeZone: 'Asia/Phnom_Penh' })}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-purple-200/60 text-xs">
+                    <p>មិនទាន់មានកំណត់ហេតុថ្មីនៅឡើយទេ។</p>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      នៅពេលមានសមាជិកថ្មី Join ឬ Leave ឆានែល @ac_mart នោះទិន្នន័យនឹងបង្ហាញនៅទីនេះភ្លាមៗ!
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
         </div>

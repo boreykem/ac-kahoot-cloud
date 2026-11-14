@@ -469,6 +469,17 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
             <p className="text-xs text-purple-300/80">
               រង់ចាំសិស្សចូលរួម... ពេលគ្រប់ចំនួនសូមចុច "ចាប់ផ្តើម"
             </p>
+            <div className="pt-1">
+              <a 
+                href="https://t.me/ac_mart" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/60 hover:bg-sky-900/60 border border-sky-400/30 text-[11px] text-sky-300 font-semibold transition-all hover:scale-105"
+              >
+                <span>📢 Telegram Channel ផ្លូវការ៖</span>
+                <span className="font-mono text-white underline">@ac_mart</span>
+              </a>
+            </div>
           </div>
         </div>
 
