@@ -752,7 +752,7 @@ async function sendOtpEmail(targetEmail, otpCode, userName) {
 
   // Backup log for local development
   console.log(`\n======================================================`);
-  console.log(`🔑 [AC-Kahoot! OTP] Password Reset for: ${targetEmail}`);
+  console.log(`🔑 [AC-GAME! OTP] Password Reset for: ${targetEmail}`);
   console.log(`👉 OTP Code: ${otpCode} (Valid for 15 mins)`);
   console.log(`======================================================\n`);
   return { sent: false, error: 'No SMTP credentials' };
@@ -2860,7 +2860,7 @@ app.post('/api/admin/bot/send-test', verifyToken, isAdmin, async (req, res) => {
     });
   }
 
-  const testMsg = `🔔 <b>តេស្តប្រព័ន្ធជូនដំណឹង AC-Kahoot!</b>\n\n` +
+  const testMsg = `🔔 <b>តេស្តប្រព័ន្ធជូនដំណឹង AC-GAME!</b>\n\n` +
     `សួស្តីលោកគ្រូ បូរី! 👋\n` +
     `ប្រព័ន្ធ Telegram Bot ត្រូវបានភ្ជាប់ជាមួយ Admin Chat ID <code>${chatId}</code> ដោយជោគជ័យ។\n` +
     `រាល់ពេលអតិថិជនស្កេនបង់ប្រាក់ KHQR និងផ្ញើវិក្កយបត្រ ព័ត៌មាននឹងលោតមកកាន់ទីនេះភ្លាមៗ! 🚀\n\n` +
@@ -2907,7 +2907,7 @@ app.post('/api/payment/notify', async (req, res) => {
                     `💰 <b>Price:</b> ${planPrice}\n\n` +
                     `<i>A user has submitted a payment request via the Web UI. Please verify their payment and manually grant them the license in the Master Admin panel.</i>`;
 
-    const inlineKeyboard = [[{ text: '✅ Open Web Dashboard', url: 'https://ac-kahoot-cloud.onrender.com' }]];
+    const inlineKeyboard = [[{ text: '✅ Open Web Dashboard', url: 'https://game-ac.pages.dev' }]];
     
     await sendTelegramMessage(adminChatId, message, 'HTML', { inline_keyboard: inlineKeyboard });
     res.json({ success: true, message: 'Ticket sent to admin.' });
@@ -3011,7 +3011,7 @@ async function pollTelegramBot() {
                 const token = param.replace(/^reset_/, '').trim();
                 const tokenData = telegramResetTokens.get(token);
                 if (tokenData && Date.now() <= tokenData.expiresAt) {
-                  let otpReply = `🔐 <b>លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់ (AC-Kahoot!)</b>\n\n`;
+                  let otpReply = `🔐 <b>លេខកូដសម្ងាត់ប្តូរលេខសម្ងាត់ (AC-GAME!)</b>\n\n`;
                   otpReply += `សួស្តី <b>${tokenData.userName || senderName}</b>! 🙏\n`;
                   otpReply += `អ្នកបានស្នើសុំប្តូរលេខសម្ងាត់សម្រាប់គណនី៖\n<code>${tokenData.email}</code>\n\n`;
                   otpReply += `🔑 <b>លេខកូដផ្ទៀងផ្ទាត់ OTP ៦ ខ្ទង់របស់អ្នកគឺ៖</b>\n\n`;
@@ -3040,7 +3040,7 @@ async function pollTelegramBot() {
               };
               saveTelegramStates(telegramUserStates);
 
-              let reply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
+              let reply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-GAME! Official Bot</b>\n\n`;
               reply += `សួស្តី <b>${senderName}</b>! 🙏\n\n`;
               if (telegramUserStates[chatId].email) {
                 reply += `💻 <b>អ៊ីមែល (Email) របស់អ្នក៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
@@ -3114,7 +3114,7 @@ async function pollTelegramBot() {
                   adminNotice += `👉 <i>សូមចូលទៅកាន់ផ្ទាំង Master Admin ក្នុង Website ដើម្បីពិនិត្យ និង Upgrade គណនី។</i>`;
                   
                   const adminKeyboard = [
-                    [{ text: `✅ Open Web Dashboard`, url: `https://ac-kahoot-cloud.onrender.com` }]
+                    [{ text: `✅ Open Web Dashboard`, url: `https://game-ac.pages.dev` }]
                   ];
                   
                   // Forward the photo
@@ -3141,7 +3141,7 @@ async function pollTelegramBot() {
                 saveTelegramStates(telegramUserStates);
               }
 
-              let textReply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-Kahoot! Official Bot</b>\n\n`;
+              let textReply = `🎯 <b>សូមស្វាគមន៍មកកាន់ AC-GAME! Official Bot</b>\n\n`;
               textReply += `សួស្តី <b>${senderName}</b>! 🙏\n`;
               if (extractedHwid || telegramUserStates[chatId]?.hwid) {
                 textReply += `💻 <b>Email៖</b> <code>${telegramUserStates[chatId]?.hwid || extractedHwid}</code>\n\n`;
@@ -3203,7 +3203,7 @@ async function pollTelegramBot() {
                 planPrice = currentBotPricing.price1Year || '$2.5';
               }
 
-              let reply = `🎉 <b>ព័ត៌មានបញ្ជាទិញ AC-Kahoot! Pro</b>\n\n`;
+              let reply = `🎉 <b>ព័ត៌មានបញ្ជាទិញ AC-GAME! Pro</b>\n\n`;
               reply += `🌟 <b>គម្រោងដែលបានជ្រើសរើស៖</b> ${planTitle}\n`;
               reply += `💵 <b>ចំនួនទឹកប្រាក់ត្រូវបង់៖</b> <b>${planPrice}</b>\n`;
               if (telegramUserStates[chatId].email) {
@@ -3330,10 +3330,10 @@ async function pollTelegramBot() {
               await sendTelegramMessage(chatId, `✅ <b>បង្កើត និងផ្ញើ Key រួចរាល់!</b>\n<code>${keyStr}</code>\nHWID: <code>${customerEmail}</code>\nKey នេះត្រូវបានរក្សាទុកក្នុងប្រព័ន្ធដោយជោគជ័យ។`, 'HTML');
               
               let successMsg = `🎉 <b>ការបញ្ជាទិញទទួលបានជោគជ័យ!</b>\n\n`;
-              successMsg += `អរគុណច្រើនដែលបានគាំទ្រប្រព័ន្ធគ្រប់គ្រងវិញ្ញាសា AC-Kahoot! 🙏\n`;
+              successMsg += `អរគុណច្រើនដែលបានគាំទ្រប្រព័ន្ធគ្រប់គ្រងវិញ្ញាសា AC-GAME! 🙏\n`;
               successMsg += `នេះជា <b>License Key</b> របស់អ្នកសម្រាប់គម្រោង <b>${typeLabels[type]}</b>៖\n\n`;
               successMsg += `🔑 <code>${keyStr}</code>\n\n`;
-              successMsg += `👉 <i>សូម Copy លេខកូដនេះ ទៅកាន់កម្មវិធី AC-Kahoot! ត្រង់ផ្ទាំងបញ្ចូល Key រួចចុច "បញ្ជាក់ Activation"។</i>`;
+              successMsg += `👉 <i>សូម Copy លេខកូដនេះ ទៅកាន់កម្មវិធី AC-GAME! ត្រង់ផ្ទាំងបញ្ចូល Key រួចចុច "បញ្ជាក់ Activation"។</i>`;
               
               await sendTelegramMessage(customerChatId, successMsg, 'HTML');
             }

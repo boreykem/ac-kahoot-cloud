@@ -235,7 +235,7 @@ export default function AuthModal({
               </h2>
               <p className="text-[11px] text-purple-200/70">
                 {tab === 'forgot'
-                  ? 'កំណត់លេខសម្ងាត់ថ្មីតាមរយៈ Gmail'
+                  ? 'កំណត់លេខសម្ងាត់ថ្មីតាមរយៈ Telegram OTP'
                   : 'គ្រប់គ្រងវិញ្ញាសា និងបង្រៀនសិស្ស'}
               </p>
             </div>
@@ -479,7 +479,7 @@ export default function AuthModal({
               {forgotStep === 1 ? (
                 <form onSubmit={handleRequestOtp} className="space-y-3.5">
                   <p className="text-xs text-purple-200/80 leading-relaxed">
-                    សូមបញ្ចូល Gmail គណនីរបស់អ្នក។ ប្រព័ន្ធនឹងផ្ញើលេខកូដសម្ងាត់ ៦ ខ្ទង់ទៅកាន់ Gmail របស់អ្នក។
+                    សូមបញ្ចូល Gmail គណនីរបស់អ្នក។ ប្រព័ន្ធនឹងផ្ញើលេខកូដសម្ងាត់ OTP ៦ ខ្ទង់ទៅកាន់ <strong>Telegram</strong> របស់អ្នក។
                   </p>
                   <div>
                     <label className="block text-xs font-bold text-purple-200 mb-1">អ៊ីមែល Gmail របស់អ្នក</label>

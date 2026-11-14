@@ -53,7 +53,7 @@ const quizSchema = new mongoose.Schema({
   },
   authorName: {
     type: String,
-    default: 'AC-Kahoot! Official'
+    default: 'AC-GAME! Official'
   },
   isOfficial: {
     type: Boolean,

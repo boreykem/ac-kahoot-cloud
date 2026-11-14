@@ -229,7 +229,7 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
             <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-[#e21b3c] via-[#1368ce] to-[#26890c] flex items-center justify-center text-white font-black text-2xl shadow-xl">
               AC
             </div>
-            <h1 className="text-2xl font-black text-white font-['Outfit']">Kahoot<span className="text-yellow-400">!</span> Join</h1>
+            <h1 className="text-2xl font-black text-white font-['Outfit']">GAME<span className="text-yellow-400">!</span> Join</h1>
             <p className="text-xs text-purple-200/80">បញ្ចូល Game PIN ដើម្បីចូលលេងក្នុងថ្នាក់</p>
           </div>
 
