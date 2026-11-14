@@ -47,10 +47,13 @@ export default function LicenseTopBanner({
       .catch(() => {});
   }, []);
 
-  const isSuperAdmin = currentUser?.role === 'superadmin';
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email === 'baureykem@gmail.com';
 
-  // If dismissed by normal user, hide
-  if (dismissed && !isSuperAdmin) return null;
+  // NEVER show promotional banner to Super Admin
+  if (isSuperAdmin) return null;
+
+  // If dismissed by user, hide
+  if (dismissed) return null;
 
   // Determine if machine or user is already licensed
   const isLicensed = Boolean(
@@ -63,11 +66,11 @@ export default function LicenseTopBanner({
   );
 
   // If machine is activated or user has Pro/VIP/Paid license -> NEVER show promotional banner
-  if (isLicensed && !isSuperAdmin) return null;
+  if (isLicensed) return null;
 
   // If announcement is explicitly disabled -> hide banner
-  if (announcement && !announcement.enabled && !isSuperAdmin) return null;
-  if (announcement?.showForFreeOnly && isLicensed && !isSuperAdmin) return null;
+  if (announcement && !announcement.enabled) return null;
+  if (announcement?.showForFreeOnly && isLicensed) return null;
 
   const handleDismiss = () => {
     sound.playClick();
