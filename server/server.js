@@ -1697,12 +1697,14 @@ const upload = multer({
   }
 });
 
+const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42TFdkRS1KMWhlazl0bFNiem9Qb2tJSURtRVNNM0VJSlVhb011Y3ExY2tGaHc=', 'base64').toString('ascii');
+
 // Extract text from uploaded lesson file
 app.post('/api/extract-lesson', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'គ្មានឯកសារ' });
 
   const { mimetype, buffer, originalname } = req.file;
-  const apiKey = req.body.apiKey || process.env.GEMINI_API_KEY;
+  const apiKey = req.body.apiKey || currentBotPricing.geminiApiKey || process.env.GEMINI_API_KEY || DEFAULT_TRIAL_GEMINI_KEY;
 
   try {
     let extractedText = '';
@@ -1815,8 +1817,6 @@ app.post('/api/extract-lesson', upload.single('file'), async (req, res) => {
     return res.status(500).json({ success: false, message: err.message || 'ការអានឯកសារបរាជ័យ' });
   }
 });
-
-const DEFAULT_TRIAL_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42TFdkRS1KMWhlazl0bFNiem9Qb2tJSURtRVNNM0VJSlVhb011Y3ExY2tGaHc=', 'base64').toString('ascii');
 
 // Gemini AI Quiz Generator API
 app.post('/api/generate-quiz', async (req, res) => {
@@ -2126,6 +2126,27 @@ function generatePin() {
 io.on('connection', (socket) => {
   // HOST: Create Game Room
   socket.on('host:create-room', ({ quiz, level, hostLicense, clientOrigin }) => {
+    // Check if host is reconnecting to an interrupted room for the same quiz
+    for (const [existingPin, existingRoom] of rooms.entries()) {
+      if (existingRoom.quiz?.id === quiz?.id && existingRoom.hostDisconnectedTimer) {
+        clearTimeout(existingRoom.hostDisconnectedTimer);
+        existingRoom.hostDisconnectedTimer = null;
+        existingRoom.hostSocketId = socket.id;
+        socket.join(`room:${existingPin}`);
+
+        let effectiveOrigin = clientOrigin || socket.handshake?.headers?.origin || 'https://game-ac.pages.dev';
+        const hostJoinUrl = `${effectiveOrigin}/?pin=${existingPin}`;
+        socket.emit('host:room-created', {
+          pin: existingPin,
+          joinUrl: hostJoinUrl,
+          publicJoinUrl: publicUrl ? `${publicUrl}/?pin=${existingPin}` : null,
+          reconnected: true
+        });
+        console.log(`[Host] Host reconnected successfully to room ${existingPin}`);
+        return;
+      }
+    }
+
     const pin = generatePin();
     rooms.set(pin, {
       pin,
@@ -2178,13 +2199,67 @@ io.on('connection', (socket) => {
 
   // PLAYER: Join Room
   socket.on('player:join', ({ pin, nickname, avatar }) => {
-    const cleanPin = (pin || '').trim();
+    const cleanPin = (pin || '').toString().replace(/\s+/g, '').trim();
+    const cleanNick = (nickname || '').trim();
     const room = rooms.get(cleanPin);
 
     if (!room) {
       return socket.emit('player:error', { message: 'រកមិនឃើញលេខកូដ Game PIN នេះទេ! សូមពិនិត្យម្តងទៀត។' });
     }
 
+    // Check if this player is reconnecting with the same nickname
+    let existingPlayer = null;
+    let existingSocketKey = null;
+    for (const [sId, p] of room.players) {
+      if (p.nickname.toLowerCase() === cleanNick.toLowerCase()) {
+        existingPlayer = p;
+        existingSocketKey = sId;
+        break;
+      }
+    }
+
+    if (existingPlayer) {
+      // Reconnect existing player: update socket ID and restore their session
+      room.players.delete(existingSocketKey);
+      existingPlayer.socketId = socket.id;
+      existingPlayer.disconnected = false;
+      room.players.set(socket.id, existingPlayer);
+      socket.join(`room:${cleanPin}`);
+      socket.data.pin = cleanPin;
+
+      socket.emit('player:joined', {
+        pin: cleanPin,
+        nickname: existingPlayer.nickname,
+        avatar: existingPlayer.avatar,
+        quizTitle: room.quiz.title,
+        level: room.level,
+        score: existingPlayer.score,
+        reconnected: true
+      });
+
+      // If game is actively on a question, send the question so student can answer
+      if (room.state === 'QUESTION' && room.currentQIndex >= 0) {
+        const q = room.quiz.questions[room.currentQIndex];
+        const elapsed = room.questionStartTime ? (Date.now() - room.questionStartTime) / 1000 : 0;
+        const remaining = Math.max(1, Math.round((q.timeLimit || 20) - elapsed));
+        socket.emit('player:question-started', {
+          questionIndex: room.currentQIndex,
+          totalQuestions: room.quiz.questions.length,
+          timeLimit: remaining,
+          type: q.type || ((q.options || []).length === 2 ? 'true_false' : 'multiple_choice'),
+          question: q.question,
+          options: q.options,
+          optionsCount: (q.options || []).length,
+          image: q.image || null,
+          category: q.category || '',
+          leftItems: q.leftItems || [],
+          rightItems: q.rightItems || []
+        });
+      }
+      return;
+    }
+
+    // For brand new players, enforce LOBBY state
     if (room.state !== 'LOBBY') {
       return socket.emit('player:error', { message: 'ការប្រកួតបានចាប់ផ្តើមរួចហើយ មិនអាចចូលបានទេ!' });
     }
@@ -2196,16 +2271,9 @@ io.on('connection', (socket) => {
       });
     }
 
-    // Check duplicate nickname
-    for (const [, p] of room.players) {
-      if (p.nickname.toLowerCase() === nickname.trim().toLowerCase()) {
-        return socket.emit('player:error', { message: 'ឈ្មោះនេះមានអ្នកប្រើរួចហើយ សូមប្តូរឈ្មោះផ្សេង!' });
-      }
-    }
-
     const player = {
       socketId: socket.id,
-      nickname: nickname.trim(),
+      nickname: cleanNick,
       avatar: avatar || '🐱',
       score: 0,
       streak: 0,
@@ -2543,26 +2611,36 @@ io.on('connection', (socket) => {
 
   // Disconnection cleanup
   socket.on('disconnect', () => {
-    // If host disconnects
+    // If host disconnects, give 35 seconds grace period before closing room
     for (const [pin, room] of rooms.entries()) {
       if (room.hostSocketId === socket.id) {
-        io.to(`room:${pin}`).emit('game:host-disconnected', { message: 'Host បានចាកចេញពីបន្ទប់។' });
-        rooms.delete(pin);
-        console.log(`[Host] Room closed: ${pin}`);
+        room.hostDisconnectedTimer = setTimeout(() => {
+          if (rooms.has(pin) && rooms.get(pin).hostSocketId === socket.id) {
+            io.to(`room:${pin}`).emit('game:host-disconnected', { message: 'Host បានចាកចេញពីបន្ទប់។' });
+            rooms.delete(pin);
+            console.log(`[Host] Room closed after 35s grace period: ${pin}`);
+          }
+        }, 35000);
+        console.log(`[Host] WiFi blip for room ${pin}. 35s reconnect grace period started.`);
         break;
       }
       if (room.players.has(socket.id)) {
-        room.players.delete(socket.id);
-        const playerList = Array.from(room.players.values()).map(p => ({
-          socketId: p.socketId,
-          nickname: p.nickname,
-          avatar: p.avatar,
-          score: p.score
-        }));
-        io.to(room.hostSocketId).emit('room:players-updated', {
-          playersCount: room.players.size,
-          players: playerList
-        });
+        const p = room.players.get(socket.id);
+        p.disconnected = true;
+        // In LOBBY, remove immediately; during GAME, keep record so student can reconnect with score!
+        if (room.state === 'LOBBY') {
+          room.players.delete(socket.id);
+          const playerList = Array.from(room.players.values()).map(pl => ({
+            socketId: pl.socketId,
+            nickname: pl.nickname,
+            avatar: pl.avatar,
+            score: pl.score
+          }));
+          io.to(room.hostSocketId).emit('room:players-updated', {
+            playersCount: room.players.size,
+            players: playerList
+          });
+        }
         break;
       }
     }
@@ -3322,7 +3400,7 @@ async function pollTelegramBot() {
                 reply += `💻 <b>អ៊ីមែល (Email) របស់អ្នក៖</b>\n<code>${telegramUserStates[chatId].email}</code>\n\n`;
                 reply += `✅ យើងខ្ញុំបានកត់ត្រាអុីមែល របស់អ្នករួចរាល់ហើយ!\n\n`;
               } else {
-                reply += `ដើម្បីទទួលបាន License Key សូមផ្ញើលេខ <b>Hardware Machine ID</b> របស់អ្នកមកកាន់ទីនេះ។\n\n`;
+                reply += `ដើម្បីទទួលបាន License Key សូមផ្ញើ <b>អ៊ីមែល (Email)</b> គណនីរបស់អ្នក ឬលេខ <b>Hardware Machine ID</b> មកកាន់ទីនេះ។\n\n`;
               }
               reply += `🌟 <b>សូមចុចជ្រើសរើសគម្រោងដែលលោកគ្រូ/អ្នកគ្រូចង់ទិញខាងក្រោម៖</b>\n`;
               if (currentBotPricing.price1Month) reply += `• <b>Pro ប្រចាំខែ (1 Month)៖</b> ${currentBotPricing.price1Month}\n`;

@@ -463,7 +463,11 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
             <div>
               <p className="text-sm font-bold text-gray-300 mb-1">លេខកូដ PIN ថ្នាក់រៀន</p>
               <div className="text-6xl sm:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-yellow-200 to-amber-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] tracking-widest leading-none">
-                {pin || '------'}
+                {pin ? pin : (
+                  <span className="text-3xl sm:text-5xl animate-pulse text-yellow-300 font-khmer">
+                    កំពុងភ្ជាប់...
+                  </span>
+                )}
               </div>
             </div>
             <p className="text-xs text-purple-300/80">

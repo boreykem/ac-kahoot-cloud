@@ -8,9 +8,15 @@ const cleanDisplayText = (str) => {
 };
 
 export default function PlayerScreen({ socket, initialPin, onExit }) {
-  const [pin, setPin] = useState(initialPin || '');
+  const [pin, setPin] = useState((initialPin || '').replace(/\s+/g, ''));
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState('🐱');
+
+  useEffect(() => {
+    if (initialPin) {
+      setPin(initialPin.replace(/\s+/g, ''));
+    }
+  }, [initialPin]);
   const [playerState, setPlayerState] = useState('JOIN'); // JOIN, LOBBY, QUESTION, ANSWERED, RESULT, PODIUM
   const [errorMessage, setErrorMessage] = useState('');
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -134,12 +140,13 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
 
   const handleJoin = (e) => {
     e.preventDefault();
-    if (!pin.trim() || !nickname.trim()) {
+    const cleanPin = pin.replace(/\s+/g, '').trim();
+    if (!cleanPin || !nickname.trim()) {
       setErrorMessage('សូមបញ្ចូល Game PIN និង ឈ្មោះរបស់អ្នក!');
       return;
     }
     setErrorMessage('');
-    socket.emit('player:join', { pin, nickname, avatar });
+    socket.emit('player:join', { pin: cleanPin, nickname: nickname.trim(), avatar });
   };
 
   const handleSelectChoice = (idx) => {

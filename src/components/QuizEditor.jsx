@@ -261,13 +261,36 @@ export default function QuizEditor({ initialQuiz, onSave, onCancel, currentUser,
   const handleQuestionImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("ទំហំរូបភាពធំពេក! (អតិបរមា 5MB)");
+    if (file.size > 15 * 1024 * 1024) {
+      alert("ទំហំរូបភាពធំពេក! (អតិបរមា 15MB)");
       return;
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-      handleUpdateCurrentQ('image', event.target.result);
+      const img = new Image();
+      img.onload = () => {
+        // Auto-compress and resize image to prevent 413 Payload Too Large
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 1200;
+        let width = img.width;
+        let height = img.height;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        handleUpdateCurrentQ('image', compressedDataUrl);
+      };
+      img.src = event.target.result;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
