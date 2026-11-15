@@ -17,8 +17,7 @@ const connectDB = async () => {
       const conn = await mongoose.connect(DEFAULT_ATLAS_URI);
       console.log(`MongoDB Connected (Fallback Atlas): ${conn.connection.host}`);
     } catch (fallbackError) {
-      console.error(`Fallback Atlas connection also failed: ${fallbackError.message}`);
-      process.exit(1);
+      console.warn(`[MongoDB Warning] Atlas connection unavailable: ${fallbackError.message}. Running in offline fallback mode.`);
     }
   }
 };

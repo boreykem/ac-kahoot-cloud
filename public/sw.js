@@ -16,6 +16,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Ignore non-GET, WebSockets, and non-http(s) requests
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) return;
   // Let network handle dynamic requests, fallback gracefully
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))

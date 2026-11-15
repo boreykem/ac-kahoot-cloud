@@ -31,6 +31,14 @@ import {
 
 dotenv.config();
 
+// Global crash protection for network blips & async edge cases
+process.on('unhandledRejection', (reason) => {
+  console.warn('[Global Warning: Unhandled Rejection Caught]:', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Global Error: Uncaught Exception Caught]:', err?.message || err);
+});
+
 function httpsRequest(url, options = {}, postData = null) {
   return new Promise((resolve, reject) => {
     try {
