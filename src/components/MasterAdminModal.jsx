@@ -1809,7 +1809,7 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                     {lang === 'km' ? 'កំណត់លេខសម្ងាត់ Master Admin ថ្មី' : 'Change Master Admin Password'}
                   </h3>
                   <p className="text-xs text-purple-200/70">
-                    {lang === 'km' ? 'ប្តូរលេខសម្ងាត់សម្រាប់គណនី admin@AC-GAME.edu' : 'Update password for admin@AC-GAME.edu'}
+                    {lang === 'km' ? 'ប្តូរលេខសម្ងាត់សម្រាប់គណនី baureykem@gmail.com (Master Admin)' : 'Update password for baureykem@gmail.com (Master Admin)'}
                   </p>
                 </div>
               </div>
@@ -1817,14 +1817,14 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
               <form onSubmit={handleSaveAdminPassword} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-purple-200 mb-1">
-                    {lang === 'km' ? 'លេខសម្ងាត់ចាស់ (Current Password - លំនាំដើម៖ admin123)' : 'Current Password'}
+                    {lang === 'km' ? 'លេខសម្ងាត់បច្ចុប្បន្ន (Current Password)' : 'Current Password'}
                   </label>
                   <div className="relative">
                     <input
                       type={showCurrentAdminPass ? "text" : "password"}
                       value={currentAdminPass}
                       onChange={(e) => setCurrentAdminPass(e.target.value)}
-                      placeholder="admin123"
+                      placeholder="••••••••"
                       className="w-full bg-black/60 border border-white/20 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-400 font-mono"
                     />
                     <button

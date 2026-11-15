@@ -314,7 +314,7 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
     setSavedSuccess(false);
   };
 
-  const handleSaveToLibrary = () => {
+  const handleSaveToLibrary = async () => {
     if (!generatedQuestions || generatedQuestions.length === 0) return;
     sound.playCorrect();
 
@@ -337,10 +337,13 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
     };
 
     if (onSaveGeneratedQuiz) {
-      onSaveGeneratedQuiz(newQuiz);
+      const ok = await onSaveGeneratedQuiz(newQuiz);
+      if (ok === false) {
+        return; // Failed to save, keep modal open so user does not lose questions
+      }
     }
 
-    // Show success flash then close modal and return to Library
+    // Show success flash only after successful save
     setSavedSuccess(true);
     setTimeout(() => {
       resetForNextBatch();

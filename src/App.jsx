@@ -191,6 +191,10 @@ export default function App() {
         headers['x-user-id'] = user.id;
         headers['x-user-email'] = user.email;
       }
+      const token = user?.token || localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       const res = await fetch('/api/quizzes', { headers });
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -252,6 +256,10 @@ export default function App() {
         headers['x-user-id'] = currentUser.id;
         headers['x-user-email'] = currentUser.email;
       }
+      const token = currentUser?.token || localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       const res = await fetch(`/api/quizzes/${quizId}`, { method: 'DELETE', headers });
       const data = await res.json();
       if (data.success) {
@@ -266,8 +274,9 @@ export default function App() {
 
   const handleSaveQuiz = async (quizToSave) => {
     try {
-      // Check Free Tier Quota: Max 10 Quizzes
-      const isFree = !currentUser || currentUser.license === 'free';
+      // Check Free Tier Quota: Super Admin and Pro users are completely exempt
+      const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email === 'baureykem@gmail.com';
+      const isFree = !isSuperAdmin && (!currentUser || currentUser.license === 'free');
       const existingIdx = quizzes.findIndex(q => q.id === quizToSave.id);
       if (isFree && existingIdx === -1) {
         const userQuizzes = quizzes.filter(q => q.authorEmail === currentUser?.email || q.authorId === currentUser?.id);
@@ -276,7 +285,7 @@ export default function App() {
             ? '🌟 គណនី Free Trial អាចបង្កើតវិញ្ញាសាផ្ទាល់ខ្លួនបានត្រឹម ១០ ប៉ុណ្ណោះ។ សូម Upgrade ទៅកាន់ Pro ដើម្បីបង្កើតវិញ្ញាសាមិនកំណត់!' 
             : 'Free accounts are limited to 10 custom quizzes. Please upgrade to Pro for unlimited quizzes!');
           setIsProfileModalOpen(true);
-          return;
+          return false;
         }
       }
 
@@ -285,13 +294,17 @@ export default function App() {
         authorId: quizToSave.authorId || currentUser?.id || 'official',
         authorEmail: quizToSave.authorEmail || currentUser?.email || 'official',
         authorName: quizToSave.authorName || currentUser?.name || 'AC-GAME! Official',
-        isOfficial: currentUser?.role === 'superadmin' ? (quizToSave.isOfficial ?? true) : false
+        isOfficial: isSuperAdmin ? (quizToSave.isOfficial ?? true) : false
       };
 
       const headers = { 'Content-Type': 'application/json' };
       if (currentUser?.id && currentUser?.email) {
         headers['x-user-id'] = currentUser.id;
         headers['x-user-email'] = currentUser.email;
+      }
+      const token = currentUser?.token || localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const res = await fetch('/api/quizzes', {
@@ -305,19 +318,27 @@ export default function App() {
         setEditingQuiz(null);
         setActiveLevel('all');
         setView('home');
+        return true;
       } else {
         alert(data.message || 'មានបញ្ហាក្នុងការរក្សាទុកវិញ្ញាសា');
+        return false;
       }
     } catch (err) {
       console.error(err);
+      alert('មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server!');
+      return false;
     }
   };
 
   const handleSaveGeneratedAIQuiz = async (aiQuiz) => {
-    await handleSaveQuiz(aiQuiz);
-    setIsAIModalOpen(false);
-    setActiveLevel('all');
-    setView('home');
+    const ok = await handleSaveQuiz(aiQuiz);
+    if (ok) {
+      setIsAIModalOpen(false);
+      setActiveLevel('all');
+      setView('home');
+      return true;
+    }
+    return false;
   };
 
   return (

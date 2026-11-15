@@ -85,9 +85,13 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdat
     setLoading(true);
 
     try {
+      const token = currentUser?.token || localStorage.getItem('auth_token') || '';
       const res = await fetch('/api/auth/update-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           userId: currentUser.id,
           name,

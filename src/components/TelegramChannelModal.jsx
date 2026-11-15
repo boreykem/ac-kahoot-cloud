@@ -135,3 +135,4 @@ export default function TelegramChannelModal({ isOpen, onClose, lang = 'km' }) {
     </div>
   );
 }
+
