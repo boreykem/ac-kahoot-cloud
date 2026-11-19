@@ -2256,6 +2256,37 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Helper to throttle/batch player updates to host under high concurrency (e.g. 500+ players)
+  const notifyHostPlayersUpdated = (room, immediate = false) => {
+    if (!room || !room.hostSocketId) return;
+    const emitUpdate = () => {
+      const playerList = Array.from(room.players.values()).map(p => ({
+        socketId: p.socketId,
+        nickname: p.nickname,
+        avatar: p.avatar,
+        score: p.score
+      }));
+      io.to(room.hostSocketId).emit('room:players-updated', {
+        playersCount: room.players.size,
+        players: playerList
+      });
+    };
+
+    if (immediate) {
+      if (room.playersUpdateDebounce) {
+        clearTimeout(room.playersUpdateDebounce);
+        room.playersUpdateDebounce = null;
+      }
+      return emitUpdate();
+    }
+
+    if (room.playersUpdateDebounce) return;
+    room.playersUpdateDebounce = setTimeout(() => {
+      room.playersUpdateDebounce = null;
+      emitUpdate();
+    }, 200);
+  };
+
   // PLAYER: Join Room
   socket.on('player:join', ({ pin, nickname, avatar, playerToken }) => {
     const cleanPin = (pin || '').toString().replace(/\s+/g, '').trim();
@@ -2317,17 +2348,8 @@ io.on('connection', (socket) => {
         reconnected: true
       });
 
-      // Notify Host with updated player list
-      const playerList = Array.from(room.players.values()).map(p => ({
-        socketId: p.socketId,
-        nickname: p.nickname,
-        avatar: p.avatar,
-        score: p.score
-      }));
-      io.to(room.hostSocketId).emit('room:players-updated', {
-        playersCount: room.players.size,
-        players: playerList
-      });
+      // Notify Host with batched player update
+      notifyHostPlayersUpdated(room);
 
       // Synchronize player with current game state
       if (room.state === 'QUESTION' && room.currentQIndex >= 0) {
@@ -2430,18 +2452,8 @@ io.on('connection', (socket) => {
       level: room.level
     });
 
-    // Notify Host with updated player list (directly to host to save bandwidth)
-    const playerList = Array.from(room.players.values()).map(p => ({
-      socketId: p.socketId,
-      nickname: p.nickname,
-      avatar: p.avatar,
-      score: p.score
-    }));
-
-    io.to(room.hostSocketId).emit('room:players-updated', {
-      playersCount: room.players.size,
-      players: playerList
-    });
+    // Notify Host with batched player update
+    notifyHostPlayersUpdated(room);
   });
 
   // HOST: Kick Inappropriate Player
@@ -2460,17 +2472,7 @@ io.on('connection', (socket) => {
       room.players.delete(socketId);
       io.to(socketId).emit('player:kicked', { message: 'អ្នកត្រូវបាន host ដកចេញពីបន្ទប់។' });
 
-      const playerList = Array.from(room.players.values()).map(p => ({
-        socketId: p.socketId,
-        nickname: p.nickname,
-        avatar: p.avatar,
-        score: p.score
-      }));
-
-      io.to(room.hostSocketId).emit('room:players-updated', {
-        playersCount: room.players.size,
-        players: playerList
-      });
+      notifyHostPlayersUpdated(room, true);
     }
   });
 
@@ -2504,9 +2506,14 @@ io.on('connection', (socket) => {
       // Quiz Finished -> Show Final Podium
       room.state = 'PODIUM';
       const sorted = Array.from(room.players.values()).sort((a, b) => b.score - a.score);
-      io.to(`room:${room.pin}`).emit('game:podium', {
+      // Host receives full player list for Excel export
+      io.to(room.hostSocketId).emit('game:podium', {
         podium: sorted.slice(0, 3),
         allPlayers: sorted
+      });
+      // Mobile players only need top 3 podium (saves massive bandwidth under high concurrency)
+      socket.to(`room:${room.pin}`).emit('game:podium', {
+        podium: sorted.slice(0, 3)
       });
       return;
     }
@@ -2682,14 +2689,34 @@ io.on('connection', (socket) => {
     // Count how many answered in O(1)
     room.answeredCount = (room.answeredCount || 0) + 1;
     const totalAnswered = room.answeredCount;
+    const allAnswered = totalAnswered >= room.players.size && room.players.size > 0;
 
-    // Notify Host about live answer count
-    io.to(room.hostSocketId).emit('host:player-answered', {
-      totalAnswered,
-      playersCount: room.players.size,
-      answersDistribution: room.answersCount,
-      allAnswered: totalAnswered >= room.players.size && room.players.size > 0
-    });
+    // High concurrency throttle: immediately emit if all answered, otherwise throttle at 150ms
+    if (allAnswered || !room.answerThrottleTimer) {
+      if (room.answerThrottleTimer) {
+        clearTimeout(room.answerThrottleTimer);
+        room.answerThrottleTimer = null;
+      }
+      io.to(room.hostSocketId).emit('host:player-answered', {
+        totalAnswered,
+        playersCount: room.players.size,
+        answersDistribution: room.answersCount,
+        allAnswered
+      });
+      if (!allAnswered) {
+        room.answerThrottleTimer = setTimeout(() => {
+          room.answerThrottleTimer = null;
+          if (room.state === 'QUESTION') {
+            io.to(room.hostSocketId).emit('host:player-answered', {
+              totalAnswered: room.answeredCount,
+              playersCount: room.players.size,
+              answersDistribution: room.answersCount,
+              allAnswered: room.answeredCount >= room.players.size && room.players.size > 0
+            });
+          }
+        }, 150);
+      }
+    }
   });
 
   // HOST: Time Up or Force Show Results
@@ -2811,16 +2838,7 @@ io.on('connection', (socket) => {
           p.disconnectTimer = setTimeout(() => {
             if (p.disconnected && room.state === 'LOBBY' && room.players.has(socket.id)) {
               room.players.delete(socket.id);
-              const playerList = Array.from(room.players.values()).map(pl => ({
-                socketId: pl.socketId,
-                nickname: pl.nickname,
-                avatar: pl.avatar,
-                score: pl.score
-              }));
-              io.to(room.hostSocketId).emit('room:players-updated', {
-                playersCount: room.players.size,
-                players: playerList
-              });
+              notifyHostPlayersUpdated(room, true);
               console.log(`[Player] ${p.nickname} removed from lobby after 90s inactive.`);
             }
           }, 90000);
