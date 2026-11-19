@@ -2156,15 +2156,18 @@ io.on('connection', (socket) => {
     }
 
     const pin = generatePin();
+    const hostToken = crypto.randomUUID ? crypto.randomUUID() : 'htok_' + Math.random().toString(36).substring(2) + Date.now();
     rooms.set(pin, {
       pin,
       hostSocketId: socket.id,
+      hostToken,
       hostLicense: hostLicense || 'free',
       quiz,
       level: level || quiz.level || 'university',
       currentQIndex: -1,
       state: 'LOBBY',
       questionStartTime: null,
+      questionTimeout: null,
       players: new Map(),
       answersCount: [0, 0, 0, 0]
     });
@@ -2196,6 +2199,7 @@ io.on('connection', (socket) => {
 
     socket.emit('host:room-created', {
       pin,
+      hostToken,
       level: level || quiz.level || 'university',
       quizTitle: quiz.title,
       totalQuestions: quiz.questions.length,
@@ -2205,8 +2209,55 @@ io.on('connection', (socket) => {
     console.log(`[Host] Room created: ${pin} (${quiz.title}) | URL: ${hostJoinUrl}`);
   });
 
+  // HOST: Reconnect to active room
+  socket.on('host:reconnect', ({ pin, hostToken }) => {
+    const cleanPin = (pin || '').toString().trim();
+    let room = rooms.get(cleanPin);
+    if (!room) {
+      for (const [, r] of rooms) {
+        if (hostToken && r.hostToken === hostToken) { room = r; break; }
+      }
+    }
+    if (!room) {
+      return socket.emit('host:error', { message: 'បន្ទប់ប្រឡងនេះត្រូវបានបិទ ឬរកមិនឃើញឡើយ។' });
+    }
+
+    if (room.hostToken && hostToken && room.hostToken !== hostToken) {
+      return socket.emit('host:error', { message: 'គ្មានសិទ្ធិគ្រប់គ្រងបន្ទប់នេះទេ (Host Token មិនត្រូវគ្នា)!' });
+    }
+
+    if (room.hostDisconnectedTimer) {
+      clearTimeout(room.hostDisconnectedTimer);
+      room.hostDisconnectedTimer = null;
+    }
+
+    room.hostSocketId = socket.id;
+    socket.join(`room:${room.pin}`);
+    socket.data.pin = room.pin;
+    console.log(`[Host] Host successfully reconnected to room ${room.pin}`);
+
+    const playerList = Array.from(room.players.values()).map(p => ({
+      socketId: p.socketId,
+      nickname: p.nickname,
+      avatar: p.avatar,
+      score: p.score
+    }));
+
+    socket.emit('host:reconnected', {
+      pin: room.pin,
+      hostToken: room.hostToken,
+      state: room.state,
+      currentQIndex: room.currentQIndex,
+      totalQuestions: room.quiz.questions.length,
+      players: playerList,
+      playersCount: room.players.size,
+      totalAnswered: room.answeredCount || 0,
+      answersDistribution: room.answersCount
+    });
+  });
+
   // PLAYER: Join Room
-  socket.on('player:join', ({ pin, nickname, avatar }) => {
+  socket.on('player:join', ({ pin, nickname, avatar, playerToken }) => {
     const cleanPin = (pin || '').toString().replace(/\s+/g, '').trim();
     const cleanNick = (nickname || '').trim();
     const room = rooms.get(cleanPin);
@@ -2215,11 +2266,11 @@ io.on('connection', (socket) => {
       return socket.emit('player:error', { message: 'រកមិនឃើញលេខកូដ Game PIN នេះទេ! សូមពិនិត្យម្តងទៀត។' });
     }
 
-    // Check if this player is reconnecting with the same nickname
+    // Check if this player is reconnecting with the same playerToken or nickname
     let existingPlayer = null;
     let existingSocketKey = null;
     for (const [sId, p] of room.players) {
-      if (p.nickname.toLowerCase() === cleanNick.toLowerCase()) {
+      if ((playerToken && p.playerToken === playerToken) || p.nickname.toLowerCase() === cleanNick.toLowerCase()) {
         existingPlayer = p;
         existingSocketKey = sId;
         break;
@@ -2227,41 +2278,113 @@ io.on('connection', (socket) => {
     }
 
     if (existingPlayer) {
+      // Check for session hijacking / duplicate nickname while original player is active
+      const isAuthorizedOwner = (playerToken && existingPlayer.playerToken === playerToken) ||
+                                existingSocketKey === socket.id ||
+                                existingPlayer.disconnected;
+
+      if (!isAuthorizedOwner) {
+        return socket.emit('player:error', { 
+          message: `ឈ្មោះ "${cleanNick}" កំពុងមានអ្នកប្រើប្រាស់រួចហើយ! សូមជ្រើសរើសឈ្មោះផ្សេង។` 
+        });
+      }
+
+      // Clear disconnect timer if any
+      if (existingPlayer.disconnectTimer) {
+        clearTimeout(existingPlayer.disconnectTimer);
+        existingPlayer.disconnectTimer = null;
+      }
+
       // Reconnect existing player: update socket ID and restore their session
       room.players.delete(existingSocketKey);
       existingPlayer.socketId = socket.id;
       existingPlayer.disconnected = false;
+      if (avatar) existingPlayer.avatar = avatar;
       room.players.set(socket.id, existingPlayer);
       socket.join(`room:${cleanPin}`);
       socket.data.pin = cleanPin;
+      socket.data.playerToken = existingPlayer.playerToken;
 
       socket.emit('player:joined', {
         pin: cleanPin,
         nickname: existingPlayer.nickname,
         avatar: existingPlayer.avatar,
+        playerToken: existingPlayer.playerToken,
         quizTitle: room.quiz.title,
         level: room.level,
         score: existingPlayer.score,
+        streak: existingPlayer.streak,
         reconnected: true
       });
 
-      // If game is actively on a question, send the question so student can answer
+      // Notify Host with updated player list
+      const playerList = Array.from(room.players.values()).map(p => ({
+        socketId: p.socketId,
+        nickname: p.nickname,
+        avatar: p.avatar,
+        score: p.score
+      }));
+      io.to(room.hostSocketId).emit('room:players-updated', {
+        playersCount: room.players.size,
+        players: playerList
+      });
+
+      // Synchronize player with current game state
       if (room.state === 'QUESTION' && room.currentQIndex >= 0) {
         const q = room.quiz.questions[room.currentQIndex];
         const elapsed = room.questionStartTime ? (Date.now() - room.questionStartTime) / 1000 : 0;
         const remaining = Math.max(1, Math.round((q.timeLimit || 20) - elapsed));
-        socket.emit('player:question-started', {
+        const qType = q.type || ((q.options || []).length === 2 ? 'true_false' : 'multiple_choice');
+
+        const payload = {
           questionIndex: room.currentQIndex,
           totalQuestions: room.quiz.questions.length,
           timeLimit: remaining,
-          type: q.type || ((q.options || []).length === 2 ? 'true_false' : 'multiple_choice'),
-          question: q.question,
-          options: q.options,
-          optionsCount: (q.options || []).length,
+          type: qType,
+          question: q.question || '',
           image: q.image || null,
           category: q.category || '',
-          leftItems: q.leftItems || [],
-          rightItems: q.rightItems || []
+          alreadyAnswered: !!existingPlayer.answeredCurrent
+        };
+
+        if (qType === 'fill_blank') {
+          payload.acceptedAnswersCount = (q.acceptedAnswers || []).length;
+        } else if (qType === 'matching') {
+          const pairs = q.pairs || [];
+          payload.leftItems = pairs.map(p => p.left);
+          payload.shuffledRightItems = pairs.map(p => p.right).sort(() => Math.random() - 0.5);
+          payload.pairsCount = pairs.length;
+        } else {
+          payload.options = q.options || [];
+          payload.optionsCount = (q.options || []).length;
+        }
+
+        socket.emit('player:question-started', payload);
+      } else if (room.state === 'RESULT') {
+        const currentQ = room.quiz && room.quiz.questions ? room.quiz.questions[room.currentQIndex] : null;
+        const qType = currentQ ? (currentQ.type || ((currentQ.options || []).length === 2 ? 'true_false' : 'multiple_choice')) : 'multiple_choice';
+        socket.emit('player:answer-result', {
+          type: qType,
+          isCorrect: existingPlayer.lastAnswerCorrect,
+          pointsEarned: existingPlayer.lastPointsEarned,
+          totalScore: existingPlayer.score,
+          streak: existingPlayer.streak,
+          correctIndex: currentQ?.correctIndex,
+          acceptedAnswers: currentQ?.acceptedAnswers || [],
+          pairs: currentQ?.pairs || [],
+          isLastQuestion: room.currentQIndex >= room.quiz.questions.length - 1
+        });
+      } else if (room.state === 'LEADERBOARD') {
+        socket.emit('game:leaderboard', {
+          leaderboard: Array.from(room.players.values()).sort((a, b) => b.score - a.score).slice(0, 5),
+          currentQIndex: room.currentQIndex,
+          totalQuestions: room.quiz.questions.length
+        });
+      } else if (room.state === 'PODIUM') {
+        const sorted = Array.from(room.players.values()).sort((a, b) => b.score - a.score);
+        socket.emit('game:podium', {
+          podium: sorted.slice(0, 3),
+          allPlayers: sorted
         });
       }
       return;
@@ -2279,12 +2402,15 @@ io.on('connection', (socket) => {
       });
     }
 
+    const assignedToken = playerToken || (crypto.randomUUID ? crypto.randomUUID() : 'tok_' + Math.random().toString(36).substring(2) + Date.now());
     const player = {
       socketId: socket.id,
+      playerToken: assignedToken,
       nickname: cleanNick,
       avatar: avatar || '🐱',
       score: 0,
       streak: 0,
+      disconnected: false,
       lastAnswerCorrect: false,
       lastPointsEarned: 0,
       answeredCurrent: false
@@ -2293,11 +2419,13 @@ io.on('connection', (socket) => {
     room.players.set(socket.id, player);
     socket.join(`room:${cleanPin}`);
     socket.data.pin = cleanPin;
+    socket.data.playerToken = assignedToken;
 
     socket.emit('player:joined', {
       pin: cleanPin,
       nickname: player.nickname,
       avatar: player.avatar,
+      playerToken: assignedToken,
       quizTitle: room.quiz.title,
       level: room.level
     });
@@ -2317,16 +2445,18 @@ io.on('connection', (socket) => {
   });
 
   // HOST: Kick Inappropriate Player
-  socket.on('host:kick-player', ({ pin, socketId }) => {
+  socket.on('host:kick-player', ({ pin, socketId, hostToken }) => {
     const cleanPin = (pin || '').toString().trim();
     let room = rooms.get(cleanPin);
     if (!room) {
       for (const [, r] of rooms) {
-        if (r.hostSocketId === socket.id) { room = r; break; }
+        if (r.hostSocketId === socket.id || (hostToken && r.hostToken === hostToken)) { room = r; break; }
       }
     }
-    if (room && room.hostSocketId === socket.id && room.players.has(socketId)) {
+    if (room && (room.hostSocketId === socket.id || (hostToken && room.hostToken === hostToken)) && room.players.has(socketId)) {
+      room.hostSocketId = socket.id;
       const kicked = room.players.get(socketId);
+      if (kicked && kicked.disconnectTimer) clearTimeout(kicked.disconnectTimer);
       room.players.delete(socketId);
       io.to(socketId).emit('player:kicked', { message: 'អ្នកត្រូវបាន host ដកចេញពីបន្ទប់។' });
 
@@ -2345,15 +2475,29 @@ io.on('connection', (socket) => {
   });
 
   // HOST: Start Next Question
-  socket.on('host:next-question', ({ pin }) => {
+  socket.on('host:next-question', ({ pin, hostToken }) => {
     const cleanPin = (pin || '').toString().trim();
     let room = rooms.get(cleanPin);
     if (!room) {
       for (const [, r] of rooms) {
-        if (r.hostSocketId === socket.id) { room = r; break; }
+        if (r.hostSocketId === socket.id || (hostToken && r.hostToken === hostToken)) { room = r; break; }
       }
     }
-    if (!room || room.hostSocketId !== socket.id) return;
+    if (!room) return;
+
+    // Re-affirm host ownership & socket
+    room.hostSocketId = socket.id;
+    if (room.hostDisconnectedTimer) {
+      clearTimeout(room.hostDisconnectedTimer);
+      room.hostDisconnectedTimer = null;
+    }
+    socket.join(`room:${room.pin}`);
+
+    // Clear any previous question timer fallback
+    if (room.questionTimeout) {
+      clearTimeout(room.questionTimeout);
+      room.questionTimeout = null;
+    }
 
     room.currentQIndex++;
     if (room.currentQIndex >= room.quiz.questions.length) {
@@ -2380,6 +2524,15 @@ io.on('connection', (socket) => {
       p.lastAnswerCorrect = false;
       p.lastPointsEarned = 0;
     }
+
+    // Authoritative Server-side Fallback Timer: Automatically reveal results if host tab freezes/sleeps
+    const safeDurationMs = ((currentQ.timeLimit || 20) + 4) * 1000;
+    room.questionTimeout = setTimeout(() => {
+      if (room.state === 'QUESTION') {
+        console.log(`[Timer Fallback] Room ${room.pin} question ${room.currentQIndex} timed out automatically.`);
+        revealResults(room, room.pin);
+      }
+    }, safeDurationMs);
 
     // Host receives full question + options
     io.to(room.hostSocketId).emit('host:question-started', {
@@ -2540,31 +2693,41 @@ io.on('connection', (socket) => {
   });
 
   // HOST: Time Up or Force Show Results
-  socket.on('host:show-results', ({ pin }) => {
+  socket.on('host:show-results', ({ pin, hostToken }) => {
     const cleanPin = (pin || '').toString().trim();
     let room = rooms.get(cleanPin);
     if (!room) {
       for (const [, r] of rooms) {
-        if (r.hostSocketId === socket.id) { room = r; break; }
+        if (r.hostSocketId === socket.id || (hostToken && r.hostToken === hostToken)) { room = r; break; }
       }
     }
     if (room && (room.state === 'QUESTION' || room.state === 'RESULT')) {
       room.hostSocketId = socket.id;
+      if (room.hostDisconnectedTimer) {
+        clearTimeout(room.hostDisconnectedTimer);
+        room.hostDisconnectedTimer = null;
+      }
+      socket.join(`room:${room.pin}`);
       revealResults(room, room.pin);
     }
   });
 
   // HOST: Peer Discussion / Re-poll (For Higher Ed)
-  socket.on('host:peer-discuss', ({ pin, duration = 45 }) => {
+  socket.on('host:peer-discuss', ({ pin, duration = 45, hostToken }) => {
     const cleanPin = (pin || '').toString().trim();
     let room = rooms.get(cleanPin);
     if (!room) {
       for (const [, r] of rooms) {
-        if (r.hostSocketId === socket.id) { room = r; break; }
+        if (r.hostSocketId === socket.id || (hostToken && r.hostToken === hostToken)) { room = r; break; }
       }
     }
     if (room) {
       room.hostSocketId = socket.id;
+      if (room.hostDisconnectedTimer) {
+        clearTimeout(room.hostDisconnectedTimer);
+        room.hostDisconnectedTimer = null;
+      }
+      socket.join(`room:${room.pin}`);
       io.to(`room:${room.pin}`).emit('game:peer-discussion-started', {
         duration,
         message: '👥 សូមនិស្សិតពិភាក្សាគ្នាជាមួយមិត្តរួមថ្នាក់ រួចត្រៀមបោះឆ្នោតឡើងវិញ!'
@@ -2573,16 +2736,21 @@ io.on('connection', (socket) => {
   });
 
   // HOST: Show Leaderboard
-  socket.on('host:show-leaderboard', ({ pin }) => {
+  socket.on('host:show-leaderboard', ({ pin, hostToken }) => {
     const cleanPin = (pin || '').toString().trim();
     let room = rooms.get(cleanPin);
     if (!room) {
       for (const [, r] of rooms) {
-        if (r.hostSocketId === socket.id) { room = r; break; }
+        if (r.hostSocketId === socket.id || (hostToken && r.hostToken === hostToken)) { room = r; break; }
       }
     }
     if (room) {
       room.hostSocketId = socket.id;
+      if (room.hostDisconnectedTimer) {
+        clearTimeout(room.hostDisconnectedTimer);
+        room.hostDisconnectedTimer = null;
+      }
+      socket.join(`room:${room.pin}`);
       room.state = 'LEADERBOARD';
       const sorted = Array.from(room.players.values()).sort((a, b) => b.score - a.score);
 
@@ -2595,15 +2763,16 @@ io.on('connection', (socket) => {
   });
 
   // HOST: Shuffle Quiz Questions & Options Before Starting
-  socket.on('host:shuffle-quiz', ({ pin }) => {
+  socket.on('host:shuffle-quiz', ({ pin, hostToken }) => {
     const cleanPin = (pin || '').toString().trim();
     let room = rooms.get(cleanPin);
     if (!room) {
       for (const [, r] of rooms) {
-        if (r.hostSocketId === socket.id) { room = r; break; }
+        if (r.hostSocketId === socket.id || (hostToken && r.hostToken === hostToken)) { room = r; break; }
       }
     }
     if (room && room.state === 'LOBBY') {
+      room.hostSocketId = socket.id;
       // Shuffle question order
       for (let i = room.quiz.questions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -2619,35 +2788,42 @@ io.on('connection', (socket) => {
 
   // Disconnection cleanup
   socket.on('disconnect', () => {
-    // If host disconnects, give 35 seconds grace period before closing room
+    // If host disconnects, give 60 seconds grace period before closing room
     for (const [pin, room] of rooms.entries()) {
       if (room.hostSocketId === socket.id) {
         room.hostDisconnectedTimer = setTimeout(() => {
           if (rooms.has(pin) && rooms.get(pin).hostSocketId === socket.id) {
             io.to(`room:${pin}`).emit('game:host-disconnected', { message: 'Host បានចាកចេញពីបន្ទប់។' });
+            if (room.questionTimeout) clearTimeout(room.questionTimeout);
             rooms.delete(pin);
-            console.log(`[Host] Room closed after 35s grace period: ${pin}`);
+            console.log(`[Host] Room closed after 60s grace period: ${pin}`);
           }
-        }, 35000);
-        console.log(`[Host] WiFi blip for room ${pin}. 35s reconnect grace period started.`);
+        }, 60000);
+        console.log(`[Host] Host disconnected for room ${pin}. 60s reconnect grace period started.`);
         break;
       }
       if (room.players.has(socket.id)) {
         const p = room.players.get(socket.id);
         p.disconnected = true;
-        // In LOBBY, remove immediately; during GAME, keep record so student can reconnect with score!
+        console.log(`[Player] ${p.nickname} disconnected from room ${pin} (state: ${room.state}).`);
+        // In LOBBY, do not delete immediately; give 90s grace period so screen lock doesn't kick student
         if (room.state === 'LOBBY') {
-          room.players.delete(socket.id);
-          const playerList = Array.from(room.players.values()).map(pl => ({
-            socketId: pl.socketId,
-            nickname: pl.nickname,
-            avatar: pl.avatar,
-            score: pl.score
-          }));
-          io.to(room.hostSocketId).emit('room:players-updated', {
-            playersCount: room.players.size,
-            players: playerList
-          });
+          p.disconnectTimer = setTimeout(() => {
+            if (p.disconnected && room.state === 'LOBBY' && room.players.has(socket.id)) {
+              room.players.delete(socket.id);
+              const playerList = Array.from(room.players.values()).map(pl => ({
+                socketId: pl.socketId,
+                nickname: pl.nickname,
+                avatar: pl.avatar,
+                score: pl.score
+              }));
+              io.to(room.hostSocketId).emit('room:players-updated', {
+                playersCount: room.players.size,
+                players: playerList
+              });
+              console.log(`[Player] ${p.nickname} removed from lobby after 90s inactive.`);
+            }
+          }, 90000);
         }
         break;
       }
@@ -2657,6 +2833,10 @@ io.on('connection', (socket) => {
 
 function revealResults(room, pin) {
   if (!room || room.state === 'RESULT') return; // Prevent double reveal
+  if (room.questionTimeout) {
+    clearTimeout(room.questionTimeout);
+    room.questionTimeout = null;
+  }
   room.state = 'RESULT';
   const currentQ = room.quiz && room.quiz.questions ? room.quiz.questions[room.currentQIndex] : null;
   if (!currentQ) return;

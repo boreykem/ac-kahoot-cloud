@@ -12,6 +12,34 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState('🐱');
 
+  // Auto-restore saved session on initial mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('ac_player_session');
+      if (saved) {
+        const session = JSON.parse(saved);
+        if (session.pin && (!initialPin || initialPin.replace(/\s+/g, '') === session.pin)) {
+          setPin(session.pin);
+          if (session.nickname) setNickname(session.nickname);
+          if (session.avatar) setAvatar(session.avatar);
+          if (typeof session.totalScore === 'number') setTotalScore(session.totalScore);
+          
+          // If socket is connected, attempt immediate re-join
+          if (socket && socket.connected) {
+            socket.emit('player:join', {
+              pin: session.pin,
+              nickname: session.nickname,
+              avatar: session.avatar,
+              playerToken: session.playerToken
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Session parse error:', e);
+    }
+  }, [initialPin, socket]);
+
   useEffect(() => {
     if (initialPin) {
       setPin(initialPin.replace(/\s+/g, ''));
@@ -41,13 +69,48 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
 
   const avatars = ['🐱', '🐶', '🦊', '🦁', '🐯', '🐼', '🚀', '🎓', '👑', '🔥', '⚡', '💎'];
 
+  const handleExit = () => {
+    sessionStorage.removeItem('ac_player_session');
+    if (onExit) onExit();
+  };
+
   useEffect(() => {
     if (!socket) return;
+
+    // Automatic reconnect sync handler for phone screen lock/unlock or tab wake-up
+    const handleSocketConnect = () => {
+      try {
+        const saved = sessionStorage.getItem('ac_player_session');
+        if (saved) {
+          const session = JSON.parse(saved);
+          if (session.pin && session.nickname) {
+            socket.emit('player:join', {
+              pin: session.pin,
+              nickname: session.nickname,
+              avatar: session.avatar,
+              playerToken: session.playerToken
+            });
+          }
+        }
+      } catch (e) {}
+    };
+    socket.on('connect', handleSocketConnect);
 
     socket.on('player:joined', (data) => {
       setPlayerState('LOBBY');
       setErrorMessage('');
       sound.playClick();
+
+      // Persist player credentials in sessionStorage so phone sleep doesn't cause loss of session
+      const token = data.playerToken || sessionStorage.getItem('ac_player_token') || ('tok_' + Math.random().toString(36).substring(2) + Date.now());
+      sessionStorage.setItem('ac_player_token', token);
+      sessionStorage.setItem('ac_player_session', JSON.stringify({
+        pin: data.pin || pin,
+        nickname: data.nickname || nickname,
+        avatar: data.avatar || avatar,
+        playerToken: token,
+        totalScore: typeof data.score === 'number' ? data.score : totalScore
+      }));
     });
 
     socket.on('player:error', (data) => {
@@ -57,6 +120,7 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
 
     socket.on('player:kicked', (data) => {
       alert(data.message || 'អ្នកត្រូវបានដកចេញពីបន្ទប់។');
+      sessionStorage.removeItem('ac_player_session');
       setPlayerState('JOIN');
     });
 
@@ -78,7 +142,6 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
         let rightItems = data.shuffledRightItems || [];
         // Client-side fallback if server sent unshuffled or identical order
         if (rightItems.length > 1 && data.leftItems && rightItems.length === data.leftItems.length) {
-          // If rightItems identical to an aligned array, rotate by 1
           if (data.pairs && rightItems.every((r, i) => r === data.pairs[i]?.right)) {
             rightItems = [...rightItems.slice(1), rightItems[0]];
           }
@@ -86,8 +149,14 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
         setMatchingRight(rightItems);
       }
       setResultData(null);
-      setPlayerState('QUESTION');
-      sound.playCountdownTick();
+
+      // If student reconnected after already answering this question
+      if (data.alreadyAnswered) {
+        setPlayerState('ANSWERED');
+      } else {
+        setPlayerState('QUESTION');
+        sound.playCountdownTick();
+      }
     });
 
     socket.on('player:answer-result', (data) => {
@@ -95,6 +164,16 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
       setTotalScore(data.totalScore);
       setStreak(data.streak);
       setPlayerState('RESULT');
+
+      // Update persisted total score
+      try {
+        const saved = sessionStorage.getItem('ac_player_session');
+        if (saved) {
+          const session = JSON.parse(saved);
+          session.totalScore = data.totalScore;
+          sessionStorage.setItem('ac_player_session', JSON.stringify(session));
+        }
+      } catch (e) {}
 
       if (data.isCorrect) {
         sound.playCorrect();
@@ -114,10 +193,12 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
 
     socket.on('game:host-disconnected', (data) => {
       alert(data.message || 'Host បានចាកចេញពីបន្ទប់។');
+      sessionStorage.removeItem('ac_player_session');
       setPlayerState('JOIN');
     });
 
     return () => {
+      socket.off('connect', handleSocketConnect);
       socket.off('player:joined');
       socket.off('player:error');
       socket.off('player:kicked');
@@ -130,11 +211,22 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
   }, [socket]);
 
   const generateRandomNickname = () => {
-    const adjectives = ['ឆ្លាតវៃ', 'លឿនស្លេវ', 'ក្លាហាន', 'គួរឱ្យស្រឡាញ់', 'រហ័សរហួន', 'រួសរាយ', 'ខ្លាំងពូកែ', 'ចិត្តល្អ'];
-    const animals = ['ខ្លាឃ្មុំ', 'ទន្សាយ', 'ដំរី', 'សត្វតោ', 'ឆ្មា', 'ឆ្កែ', 'សត្វឥន្ទ្រី', 'ផ្សោត'];
+    const adjectives = [
+      'ឆ្លាតវៃ', 'លឿនស្លេវ', 'ក្លាហាន', 'គួរឱ្យស្រឡាញ់', 'រហ័សរហួន', 
+      'រួសរាយ', 'ខ្លាំងពូកែ', 'ចិត្តល្អ', 'ឧស្សាហ៍', 'ស្វាហាប់',
+      'ស្ងប់ស្ងាត់', 'ពូកែ', 'ប៉ិនប្រសប់', 'រួសរាយ', 'ស្រស់ស្រាយ',
+      'មុតស្រួច', 'រឹងមាំ', 'សុភាពរាបសារ', 'ច្នៃប្រឌិត', 'ម៉ឺងម៉ាត់'
+    ];
+    const animals = [
+      'ខ្លាឃ្មុំ', 'ទន្សាយ', 'ដំរី', 'សត្វតោ', 'ឆ្មា', 
+      'ឆ្កែ', 'សត្វឥន្ទ្រី', 'ផ្សោត', 'រមាំង', 'ខ្លារខិន', 
+      'សេះ', 'ផេនដា', 'កូនខ្លា', 'សត្វស្វា', 'កញ្ជ្រោង', 
+      'សត្វកុក', 'សត្វទីទុយ', 'សត្វហង្ស', 'សត្វកំប្រុក', 'សត្វនាគ'
+    ];
     const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
-    setNickname(`${randomAnimal}${randomAdj}`);
+    const randomNum = Math.floor(Math.random() * 90) + 10;
+    setNickname(`${randomAnimal}${randomAdj} ${randomNum}`);
     sound.playClick();
   };
 
@@ -146,7 +238,17 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
       return;
     }
     setErrorMessage('');
-    socket.emit('player:join', { pin: cleanPin, nickname: nickname.trim(), avatar });
+    let token = sessionStorage.getItem('ac_player_token');
+    if (!token) {
+      token = 'tok_' + Math.random().toString(36).substring(2) + Date.now();
+      sessionStorage.setItem('ac_player_token', token);
+    }
+    socket.emit('player:join', { 
+      pin: cleanPin, 
+      nickname: nickname.trim(), 
+      avatar,
+      playerToken: token 
+    });
   };
 
   const handleSelectChoice = (idx) => {
@@ -316,7 +418,7 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
           </form>
 
           <button
-            onClick={onExit}
+            onClick={handleExit}
             className="w-full text-center text-xs text-purple-300 hover:text-white flex items-center justify-center gap-1 pt-2"
           >
             <Home className="w-3.5 h-3.5" />
@@ -704,7 +806,7 @@ export default function PlayerScreen({ socket, initialPin, onExit }) {
           </div>
 
           <button
-            onClick={onExit}
+            onClick={handleExit}
             className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
           >
             <Home className="w-4 h-4" />

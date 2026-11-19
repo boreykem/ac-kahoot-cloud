@@ -61,13 +61,19 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
 
   const pinRef = useRef(pin);
   pinRef.current = pin;
+  const hostTokenRef = useRef(null);
 
   const timerRef = useRef(null);
   const discussTimerRef = useRef(null);
 
+  const handleExitGame = () => {
+    sessionStorage.removeItem('ac_host_session');
+    if (onExit) onExit();
+  };
+
   const handleShuffleQuiz = () => {
     sound.playClick();
-    socket.emit('host:shuffle-quiz', { pin: pinRef.current });
+    socket.emit('host:shuffle-quiz', { pin: pinRef.current, hostToken: hostTokenRef.current });
   };
 
   const toggleFullscreen = () => {
@@ -140,12 +146,62 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
     socket.on('host:room-created', (data) => {
       setPin(data.pin);
       pinRef.current = data.pin;
+      if (data.hostToken) {
+        hostTokenRef.current = data.hostToken;
+        sessionStorage.setItem('ac_host_session', JSON.stringify({
+          pin: data.pin,
+          hostToken: data.hostToken,
+          quizId: quiz?.id
+        }));
+      }
       setJoinUrl(data.joinUrl);
       if (data.publicJoinUrl) {
         setPublicJoinUrl(data.publicJoinUrl);
         setUse4G(true);
       }
       sound.startLobbyMusic();
+    });
+
+    // Reconnection listener if socket drops and reconnects
+    const handleSocketConnect = () => {
+      try {
+        const saved = sessionStorage.getItem('ac_host_session');
+        if (saved) {
+          const session = JSON.parse(saved);
+          if (session.pin && session.quizId === quiz?.id) {
+            socket.emit('host:reconnect', {
+              pin: session.pin,
+              hostToken: session.hostToken
+            });
+          }
+        }
+      } catch (e) {}
+    };
+    socket.on('connect', handleSocketConnect);
+
+    socket.on('host:reconnected', (data) => {
+      if (data.pin) {
+        setPin(data.pin);
+        pinRef.current = data.pin;
+      }
+      if (data.hostToken) {
+        hostTokenRef.current = data.hostToken;
+      }
+      if (data.state) {
+        setGameState(data.state);
+      }
+      if (typeof data.currentQIndex === 'number' && data.currentQIndex >= 0) {
+        setCurrentQIndex(data.currentQIndex);
+        if (quiz?.questions?.[data.currentQIndex]) {
+          setCurrentQuestion(quiz.questions[data.currentQIndex]);
+        }
+      }
+      if (data.players) {
+        setPlayers(data.players);
+      }
+      if (typeof data.totalAnswered === 'number') {
+        setTotalAnswered(data.totalAnswered);
+      }
     });
 
     socket.on('server:public-url-updated', (data) => {
@@ -230,6 +286,17 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
       sound.stopLobbyMusic();
       if (timerRef.current) clearInterval(timerRef.current);
       if (discussTimerRef.current) clearInterval(discussTimerRef.current);
+      socket.off('connect', handleSocketConnect);
+      socket.off('host:room-created');
+      socket.off('host:reconnected');
+      socket.off('server:public-url-updated');
+      socket.off('room:players-updated');
+      socket.off('host:quiz-shuffled');
+      socket.off('host:question-started');
+      socket.off('host:player-answered');
+      socket.off('host:results-shown');
+      socket.off('game:leaderboard');
+      socket.off('game:podium');
     };
   }, [socket, quiz, level]);
 
@@ -338,32 +405,33 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
 
   const handleStartGame = () => {
     sound.playClick();
-    socket.emit('host:next-question', { pin: pinRef.current });
+    socket.emit('host:next-question', { pin: pinRef.current, hostToken: hostTokenRef.current });
   };
 
   const handleShowResults = () => {
-    socket.emit('host:show-results', { pin: pinRef.current });
+    sound.stopThinkingMusic();
+    socket.emit('host:show-results', { pin: pinRef.current, hostToken: hostTokenRef.current });
   };
 
   const handleShowLeaderboard = () => {
     sound.playClick();
-    socket.emit('host:show-leaderboard', { pin: pinRef.current });
+    socket.emit('host:show-leaderboard', { pin: pinRef.current, hostToken: hostTokenRef.current });
   };
 
   const handleNextQuestion = () => {
     sound.playClick();
-    socket.emit('host:next-question', { pin: pinRef.current });
+    socket.emit('host:next-question', { pin: pinRef.current, hostToken: hostTokenRef.current });
   };
 
   const handleStartPeerDiscussion = () => {
     sound.playClick();
     setPeerDiscussActive(true);
     setPeerDiscussTime(45);
-    socket.emit('host:peer-discuss', { pin: pinRef.current, duration: 45 });
+    socket.emit('host:peer-discuss', { pin: pinRef.current, duration: 45, hostToken: hostTokenRef.current });
   };
 
   const handleKickPlayer = (socketId) => {
-    socket.emit('host:kick-player', { pin: pinRef.current, socketId });
+    socket.emit('host:kick-player', { pin: pinRef.current, socketId, hostToken: hostTokenRef.current });
   };
 
   const choiceIcons = ['▲', '◆', '●', '■'];
@@ -378,7 +446,7 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
         {/* Top Bar */}
         <div className="flex items-center justify-between glass-panel p-4 rounded-2xl">
           <button
-            onClick={onExit}
+            onClick={handleExitGame}
             className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 transition-all"
           >
             <Home className="w-4 h-4" />
@@ -989,7 +1057,7 @@ export default function HostScreen({ socket, quiz, level, onExit, currentUser })
 
             <button
               type="button"
-              onClick={onExit}
+              onClick={handleExitGame}
               className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all"
             >
               <Home className="w-4 h-4" />
