@@ -1519,12 +1519,33 @@ app.post('/api/user/save-gemini-key', verifyToken, async (req, res) => {
 
 // REST API Endpoints
 app.get('/api/quizzes', async (req, res) => {
-  const userId = req.headers['x-user-id'];
-  const userEmail = req.headers['x-user-email'];
+  let userId = req.headers['x-user-id'];
+  let userEmail = req.headers['x-user-email'];
+
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded) {
+        userId = userId || decoded.id;
+        userEmail = userEmail || decoded.email;
+      }
+    } catch (_) {}
+  }
+
   const allQuizzes = await Quiz.find({}).sort({ createdAt: -1, _id: -1 }).lean();
 
-  if (userId && userEmail) {
-    const user = await getValidatedUser(userId, userEmail);
+  if (userId || userEmail) {
+    let user = null;
+    if (userId && userEmail) {
+      user = await getValidatedUser(userId, userEmail);
+    } else if (userEmail) {
+      user = await User.findOne({ email: new RegExp(`^${escapeRegex(userEmail.trim())}$`, 'i') });
+    } else if (userId) {
+      user = await User.findOne({ id: userId });
+    }
+
     if (user && user.role === 'superadmin') {
       return res.json(allQuizzes); // Superadmin sees all
     } else if (user) {
@@ -1533,8 +1554,8 @@ app.get('/api/quizzes', async (req, res) => {
         q.isOfficial || 
         !q.authorEmail || 
         q.authorEmail === 'official' || 
-        q.authorEmail.toLowerCase() === user.email.toLowerCase() || 
-        q.authorId === user.id
+        (user.email && q.authorEmail?.toLowerCase() === user.email.toLowerCase()) || 
+        (user.id && q.authorId === user.id)
       );
       return res.json(filtered);
     }
