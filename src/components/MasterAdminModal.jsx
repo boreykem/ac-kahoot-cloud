@@ -4,7 +4,8 @@ import {
   Trash2, Key, RefreshCw, Download, UserPlus, Sparkles,
   School, Mail, ShieldCheck, Zap, Activity, Lock, Save, Megaphone, Eye, EyeOff,
   Copy, Video, FileText, Globe, Share2, ExternalLink, Check,
-  Send, DollarSign, Bot, MessageSquare, Phone, QrCode, Upload, Image as ImageIcon, CreditCard
+  Send, DollarSign, Bot, MessageSquare, Phone, QrCode, Upload, Image as ImageIcon, CreditCard,
+  Filter, ArrowUpDown, RotateCcw
 } from 'lucide-react';
 import { sound } from '../utils/audioEngine';
 import { compressImage } from '../utils/imageCompressor';
@@ -18,6 +19,12 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
   const [searchTerm, setSearchTerm] = useState('');
   const [actionNotice, setActionNotice] = useState('');
   const [usersError, setUsersError] = useState('');
+
+  // Batch License & Filter/Sort State
+  const [pendingLicenses, setPendingLicenses] = useState({}); // { [userId]: newLicense }
+  const [savingBatch, setSavingBatch] = useState(false);
+  const [licenseFilter, setLicenseFilter] = useState('ALL'); // 'ALL' | 'free' | 'pro_annual' | 'pro_monthly' | 'PRO_LIFETIME' | 'VIP_SCHOOL' | 'pending'
+  const [sortBy, setSortBy] = useState('default'); // 'default' | 'license_asc' | 'license_desc' | 'name_asc' | 'name_desc' | 'expiry_asc' | 'newest'
 
   // Telegram Bot & Pricing State
   const [botPricing, setBotPricing] = useState({
@@ -348,11 +355,84 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
         sound.playCorrect();
         setActionNotice(lang === 'km' ? 'បានផ្លាស់ប្តូរ License ដោយជោគជ័យ!' : 'License updated successfully!');
         setTimeout(() => setActionNotice(''), 3000);
+        // Clear from pending if it was there
+        setPendingLicenses(prev => {
+          const next = { ...prev };
+          delete next[userId];
+          return next;
+        });
         fetchAdminData();
       }
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // Stage a license change in local state without reloading/triggering network request
+  const handleStageLicenseChange = (userId, newLicense, originalLicense) => {
+    sound.playClick();
+    setPendingLicenses(prev => {
+      const next = { ...prev };
+      if (newLicense === originalLicense) {
+        delete next[userId];
+      } else {
+        next[userId] = newLicense;
+      }
+      return next;
+    });
+  };
+
+  // Save all pending staged license updates in a single batch API call
+  const handleSaveAllPendingLicenses = async () => {
+    const entries = Object.entries(pendingLicenses);
+    if (entries.length === 0) return;
+    sound.playClick();
+    setSavingBatch(true);
+    try {
+      const updates = entries.map(([id, license]) => ({ id, license }));
+      const res = await fetch('/api/admin/users/batch-licenses', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ updates })
+      });
+      const data = await res.json();
+      if (data.success) {
+        sound.playCorrect();
+        setActionNotice(`🎉 ${data.message || `បានកែប្រែ License ចំនួន ${updates.length} នាក់ដោយជោគជ័យ!`}`);
+
+        // Optimistically update local users state so UI updates instantly
+        if (data.updatedUsers && data.updatedUsers.length > 0) {
+          const updateMap = new Map(data.updatedUsers.map(u => [u.id, u]));
+          setUsers(prevUsers => prevUsers.map(u => {
+            if (updateMap.has(u.id)) {
+              const updated = updateMap.get(u.id);
+              return { ...u, license: updated.license, licenseExpiryDate: updated.licenseExpiryDate };
+            }
+            return u;
+          }));
+        } else {
+          fetchAdminData();
+        }
+
+        setPendingLicenses({});
+        setTimeout(() => setActionNotice(''), 4000);
+      } else {
+        alert(data.message || 'បរាជ័យក្នុងការរក្សាទុក');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving batch licenses');
+    } finally {
+      setSavingBatch(false);
+    }
+  };
+
+  // Save a single user's pending license change immediately
+  const handleSaveSinglePendingLicense = async (userId) => {
+    const newLicense = pendingLicenses[userId];
+    if (!newLicense) return;
+    sound.playClick();
+    await handleUpdateLicense(userId, newLicense);
   };
 
   const handleDeleteUser = async (userId, userName) => {
@@ -495,11 +575,90 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
   if (!isOpen) return null;
 
-  const filteredUsers = users.filter(u => 
-    (u.name + ' ' + u.email + ' ' + (u.school || ''))
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  const pendingCount = Object.keys(pendingLicenses).length;
+
+  const licenseCounts = {
+    ALL: users.length,
+    free: 0,
+    pro_annual: 0,
+    pro_monthly: 0,
+    PRO_LIFETIME: 0,
+    VIP_SCHOOL: 0,
+    pending: pendingCount
+  };
+  users.forEach(u => {
+    const lic = pendingLicenses[u.id] !== undefined ? pendingLicenses[u.id] : (u.license || 'free');
+    if (lic === 'free') licenseCounts.free++;
+    else if (lic === 'pro_annual') licenseCounts.pro_annual++;
+    else if (lic === 'pro_monthly') licenseCounts.pro_monthly++;
+    else if (lic === 'PRO_LIFETIME' || lic === 'pro_lifetime') licenseCounts.PRO_LIFETIME++;
+    else if (lic === 'VIP_SCHOOL' || lic === 'vip_school') licenseCounts.VIP_SCHOOL++;
+  });
+
+  const filteredUsers = users
+    .filter(u => {
+      // 1. Search text filter
+      const matchesSearch = (u.name + ' ' + u.email + ' ' + (u.school || ''))
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      if (!matchesSearch) return false;
+
+      // 2. License filter
+      if (licenseFilter === 'ALL') return true;
+      if (licenseFilter === 'pending') {
+        return pendingLicenses[u.id] !== undefined && pendingLicenses[u.id] !== (u.license || 'free');
+      }
+      const currentLic = pendingLicenses[u.id] !== undefined ? pendingLicenses[u.id] : (u.license || 'free');
+      if (licenseFilter === 'PRO_LIFETIME') {
+        return currentLic === 'PRO_LIFETIME' || currentLic === 'pro_lifetime';
+      }
+      if (licenseFilter === 'VIP_SCHOOL') {
+        return currentLic === 'VIP_SCHOOL' || currentLic === 'vip_school';
+      }
+      return currentLic === licenseFilter;
+    })
+    .sort((a, b) => {
+      // Superadmin always on top
+      if (a.role === 'superadmin' && b.role !== 'superadmin') return -1;
+      if (b.role === 'superadmin' && a.role !== 'superadmin') return 1;
+
+      const licA = pendingLicenses[a.id] !== undefined ? pendingLicenses[a.id] : (a.license || 'free');
+      const licB = pendingLicenses[b.id] !== undefined ? pendingLicenses[b.id] : (b.license || 'free');
+
+      const tierOrder = {
+        'free': 1,
+        'pro_monthly': 2,
+        'pro_annual': 3,
+        'PRO_LIFETIME': 4,
+        'pro_lifetime': 4,
+        'VIP_SCHOOL': 5,
+        'vip_school': 5
+      };
+
+      if (sortBy === 'license_asc') {
+        return (tierOrder[licA] || 0) - (tierOrder[licB] || 0);
+      }
+      if (sortBy === 'license_desc') {
+        return (tierOrder[licB] || 0) - (tierOrder[licA] || 0);
+      }
+      if (sortBy === 'name_asc') {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      if (sortBy === 'name_desc') {
+        return (b.name || '').localeCompare(a.name || '');
+      }
+      if (sortBy === 'expiry_asc') {
+        const timeA = a.licenseExpiryDate ? new Date(a.licenseExpiryDate).getTime() : Infinity;
+        const timeB = b.licenseExpiryDate ? new Date(b.licenseExpiryDate).getTime() : Infinity;
+        return timeA - timeB;
+      }
+      if (sortBy === 'newest') {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      }
+      return 0;
+    });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 font-khmer animate-scale-in">
@@ -734,26 +893,206 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
               {/* Teacher Users Management Section */}
               <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                {/* Header & Sort/Search Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-yellow-400" />
                       <span>{lang === 'km' ? 'បញ្ជីគណនីគ្រូបង្រៀន (Teachers Directory)' : 'Teachers Directory'}</span>
                     </h3>
                     <p className="text-xs text-purple-200/60">
-                      {lang === 'km' ? 'គ្រប់គ្រង License និង Reset លេខសម្ងាត់ជូនគ្រូ' : 'Manage licenses & reset passwords'}
+                      {lang === 'km' ? 'គ្រប់គ្រង License, អនុម័តគម្រោងថ្មី និង Reset លេខសម្ងាត់' : 'Manage licenses, approve new tiers & reset passwords'}
                     </p>
                   </div>
 
-                  {/* Search Teacher */}
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder={lang === 'km' ? 'ស្វែងរកឈ្មោះ ឬអ៊ីមែលគ្រូ...' : 'Search teacher...'}
-                    className="bg-black/50 border border-white/20 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-yellow-400 min-w-[220px]"
-                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Sort Dropdown */}
+                    <div className="flex items-center gap-1.5 bg-black/50 border border-white/20 rounded-xl px-2.5 py-1.5">
+                      <ArrowUpDown className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                      <span className="text-[11px] text-purple-300 font-bold shrink-0 hidden md:inline">តម្រៀប៖</span>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="bg-transparent text-xs text-yellow-300 font-bold focus:outline-none cursor-pointer"
+                        title="តម្រៀបតាមលំដាប់"
+                      >
+                        <option value="default" className="bg-[#1a0538] text-white">🔀 លំនាំដើម</option>
+                        <option value="license_asc" className="bg-[#1a0538] text-white">👑 License: Free ទៅ Pro (ងាយស្រួលអនុម័ត)</option>
+                        <option value="license_desc" className="bg-[#1a0538] text-white">👑 License: Pro មក Free</option>
+                        <option value="name_asc" className="bg-[#1a0538] text-white">🔤 ឈ្មោះ (A - Z / ក - អ)</option>
+                        <option value="name_desc" className="bg-[#1a0538] text-white">🔤 ឈ្មោះ (Z - A / អ - ក)</option>
+                        <option value="expiry_asc" className="bg-[#1a0538] text-white">⏳ ជិតផុតកំណត់មុន (Expiring Soon)</option>
+                        <option value="newest" className="bg-[#1a0538] text-white">🆕 ចុះឈ្មោះថ្មីមុន (Newest)</option>
+                      </select>
+                    </div>
+
+                    {/* Search Teacher */}
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder={lang === 'km' ? 'ស្វែងរកឈ្មោះ ឬអ៊ីមែល...' : 'Search teacher...'}
+                      className="bg-black/50 border border-white/20 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-yellow-400 min-w-[190px]"
+                    />
+                  </div>
                 </div>
+
+                {/* Filter by License Category Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5 pb-1">
+                  <span className="text-xs text-purple-200/70 font-semibold flex items-center gap-1 mr-1">
+                    <Filter className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="hidden sm:inline">តម្រង៖</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFilter('ALL')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      licenseFilter === 'ALL'
+                        ? 'bg-yellow-400 text-black shadow-md shadow-yellow-950/40 font-black'
+                        : 'bg-white/5 hover:bg-white/10 text-gray-300'
+                    }`}
+                  >
+                    <span>ទាំងអស់</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+                      {licenseCounts.ALL}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFilter('free')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      licenseFilter === 'free'
+                        ? 'bg-gray-200 text-black shadow-md font-black ring-2 ring-white/50'
+                        : 'bg-white/5 hover:bg-white/10 text-gray-300'
+                    }`}
+                    title="បង្ហាញតែគណនី Free ដើម្បីងាយស្រួលអនុម័តប្តូរគម្រោង"
+                  >
+                    <span>⚪ ធម្មតា (Free)</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+                      {licenseCounts.free}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFilter('pro_annual')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      licenseFilter === 'pro_annual'
+                        ? 'bg-emerald-500 text-white shadow-md font-black ring-2 ring-emerald-400/50'
+                        : 'bg-white/5 hover:bg-white/10 text-emerald-300'
+                    }`}
+                  >
+                    <span>📅 Pro Annual</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+                      {licenseCounts.pro_annual}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFilter('pro_monthly')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      licenseFilter === 'pro_monthly'
+                        ? 'bg-cyan-500 text-white shadow-md font-black ring-2 ring-cyan-400/50'
+                        : 'bg-white/5 hover:bg-white/10 text-cyan-300'
+                    }`}
+                  >
+                    <span>⏳ Pro Monthly</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+                      {licenseCounts.pro_monthly}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFilter('PRO_LIFETIME')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      licenseFilter === 'PRO_LIFETIME'
+                        ? 'bg-amber-400 text-black shadow-md font-black ring-2 ring-amber-300/50'
+                        : 'bg-white/5 hover:bg-white/10 text-amber-300'
+                    }`}
+                  >
+                    <span>👑 Pro Lifetime</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+                      {licenseCounts.PRO_LIFETIME}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFilter('VIP_SCHOOL')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      licenseFilter === 'VIP_SCHOOL'
+                        ? 'bg-indigo-500 text-white shadow-md font-black ring-2 ring-indigo-400/50'
+                        : 'bg-white/5 hover:bg-white/10 text-indigo-300'
+                    }`}
+                  >
+                    <span>🏫 VIP School</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+                      {licenseCounts.VIP_SCHOOL}
+                    </span>
+                  </button>
+
+                  {pendingCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setLicenseFilter('pending')}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border animate-pulse ${
+                        licenseFilter === 'pending'
+                          ? 'bg-yellow-400 text-black border-yellow-300 font-black'
+                          : 'bg-yellow-500/20 text-yellow-300 border-yellow-400/50'
+                      }`}
+                    >
+                      <span>🔄 បានកែប្រែ</span>
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-yellow-400 text-black font-black">
+                        {pendingCount}
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Staged Changes Action Banner (Shows whenever admin has modified licenses) */}
+                {pendingCount > 0 && (
+                  <div className="p-3.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-600/20 border-2 border-yellow-400/80 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xl animate-pop-in">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-yellow-400 text-black flex items-center justify-center font-black text-sm shadow-md animate-bounce">
+                        {pendingCount}
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                          <span>មានការកែប្រែ License ចំនួន</span>
+                          <span className="text-yellow-300 font-black px-1.5 py-0.2 rounded-md bg-yellow-400/20 border border-yellow-400/30">{pendingCount} នាក់</span>
+                          <span>កំពុងរង់ចាំការអនុម័ត</span>
+                        </p>
+                        <p className="text-[11px] text-yellow-200/80">
+                          លោកគ្រូអាចបន្តចុចកែប្រែគ្រូដទៃទៀត រួចចុចប៊ូតុង [រក្សាទុកការផ្លាស់ប្តូរទាំងអស់] ដើម្បីអនុវត្តក្នុងពេលតែមួយ
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { sound.playClick(); setPendingLicenses({}); }}
+                        className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>បោះបង់ (Reset)</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingBatch}
+                        onClick={handleSaveAllPendingLicenses}
+                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-400 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-emerald-950/60 hover:scale-105 active:scale-95 transition-all"
+                      >
+                        {savingBatch ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        <span>💾 រក្សាទុកការផ្លាស់ប្តូរទាំងអស់ ({pendingCount} នាក់)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Table */}
                 <div className="rounded-2xl border border-white/15 overflow-hidden bg-black/40">
@@ -802,8 +1141,18 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                           </tr>
                         ) : filteredUsers.map((u) => {
                           const isOwner = u.role === 'superadmin';
+                          const isModified = pendingLicenses[u.id] !== undefined;
+                          const currentLic = isModified ? pendingLicenses[u.id] : (u.license || 'free');
+
                           return (
-                            <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                            <tr
+                              key={u.id}
+                              className={`transition-colors ${
+                                isModified
+                                  ? 'bg-yellow-500/10 border-l-4 border-yellow-400'
+                                  : 'hover:bg-white/5'
+                              }`}
+                            >
                               <td className="p-3.5">
                                 <div className="flex items-center gap-2.5">
                                   <span className="text-xl w-8 h-8 rounded-xl bg-purple-900/50 flex items-center justify-center border border-white/10">
@@ -815,6 +1164,11 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                                       {isOwner && (
                                         <span className="text-[10px] bg-yellow-400 text-black font-black px-1.5 py-0.2 rounded-full">
                                           OWNER
+                                        </span>
+                                      )}
+                                      {isModified && (
+                                        <span className="text-[10px] bg-yellow-400 text-black font-black px-1.5 py-0.2 rounded-full animate-pulse flex items-center gap-1">
+                                          <span>●</span> បានកែប្រែ
                                         </span>
                                       )}
                                     </p>
@@ -834,20 +1188,42 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
                                   </span>
                                 ) : (
                                   <div className="flex flex-col gap-1.5 items-start">
-                                    <select
-                                      value={u.license || 'free'}
-                                      onChange={(e) => handleUpdateLicense(u.id, e.target.value)}
-                                      className="bg-black/60 border border-purple-400/40 text-yellow-300 rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none"
-                                    >
-                                      <option value="free">⚪ ធម្មតា (Free Tier)</option>
-                                      <option value="PRO_LIFETIME">👑 Pro Lifetime (ប្រើមួយជីវិត)</option>
-                                      <option value="VIP_SCHOOL">🏫 VIP School Lifetime (សាលារៀន)</option>
-                                      <option value="pro_annual">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
-                                      <option value="pro_monthly">⏳ Pro Monthly (ប្រចាំខែ)</option>
-                                    </select>
-                                    {u.licenseExpiryDate && (
+                                    <div className="flex items-center gap-1.5">
+                                      <select
+                                        value={currentLic}
+                                        onChange={(e) => handleStageLicenseChange(u.id, e.target.value, u.license || 'free')}
+                                        className={`rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none transition-all cursor-pointer ${
+                                          isModified
+                                            ? 'bg-yellow-950/80 border-2 border-yellow-400 text-yellow-200 ring-2 ring-yellow-400/40 font-black shadow-lg shadow-yellow-500/20'
+                                            : 'bg-black/60 border border-purple-400/40 text-yellow-300'
+                                        }`}
+                                      >
+                                        <option value="free">⚪ ធម្មតា (Free Tier)</option>
+                                        <option value="PRO_LIFETIME">👑 Pro Lifetime (ប្រើមួយជីវិត)</option>
+                                        <option value="VIP_SCHOOL">🏫 VIP School Lifetime (សាលារៀន)</option>
+                                        <option value="pro_annual">📅 Pro Annual (ប្រចាំឆ្នាំ)</option>
+                                        <option value="pro_monthly">⏳ Pro Monthly (ប្រចាំខែ)</option>
+                                      </select>
+
+                                      {isModified && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSaveSinglePendingLicense(u.id)}
+                                          title="រក្សាទុកភ្លាមៗសម្រាប់គ្រូនេះ (Save this user now)"
+                                          className="p-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white shadow-md transition-all flex items-center justify-center hover:scale-110 active:scale-95"
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                    {u.licenseExpiryDate && !isModified && (
                                       <span className="text-[10px] text-amber-400 font-medium bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-500/20 whitespace-nowrap">
                                         ផុតកំណត់៖ {new Date(u.licenseExpiryDate).toLocaleDateString('en-GB')}
+                                      </span>
+                                    )}
+                                    {isModified && (
+                                      <span className="text-[10px] text-yellow-300 font-bold bg-yellow-900/50 px-2 py-0.5 rounded-md border border-yellow-500/30 whitespace-nowrap">
+                                        រង់ចាំចុច [រក្សាទុក]...
                                       </span>
                                     )}
                                   </div>
@@ -2123,13 +2499,34 @@ export default function MasterAdminModal({ isOpen, onClose, currentUser, lang = 
 
         {/* Footer */}
         <div className="p-4 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-purple-300/70">
-          <span>AC-GAME! Enterprise Platform v2.5.0</span>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all"
-          >
-            {lang === 'km' ? 'បិទផ្ទាំងបញ្ជា' : 'Close Panel'}
-          </button>
+          <div className="flex items-center gap-3">
+            <span>AC-GAME! Enterprise Platform v2.5.0</span>
+            {pendingCount > 0 && (
+              <span className="px-2.5 py-1 rounded-lg bg-yellow-500/20 text-yellow-300 border border-yellow-400/40 font-bold text-[11px] flex items-center gap-1.5 animate-pulse">
+                <span>⚡</span>
+                <span>មាន {pendingCount} នាក់មិនទាន់រក្សាទុក</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {pendingCount > 0 && (
+              <button
+                type="button"
+                disabled={savingBatch}
+                onClick={handleSaveAllPendingLicenses}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 hover:scale-105 active:scale-95 transition-all"
+              >
+                {savingBatch ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>រក្សាទុកទាំងអស់ ({pendingCount} នាក់)</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all"
+            >
+              {lang === 'km' ? 'បិទផ្ទាំងបញ្ជា' : 'Close Panel'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

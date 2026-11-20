@@ -1059,6 +1059,52 @@ app.post('/api/admin/users/:id/license', verifyToken, isAdmin, async (req, res) 
   res.json({ success: true, user });
 });
 
+// Master Admin: Batch Update Licenses
+app.post('/api/admin/users/batch-licenses', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { updates } = req.body; // Array of { id, license }
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'No updates provided' });
+    }
+
+    let modifiedCount = 0;
+    const updatedUsers = [];
+
+    for (const item of updates) {
+      if (!item.id) continue;
+      const user = await User.findOne({ id: item.id });
+      if (!user) continue;
+
+      user.license = item.license || 'free';
+      if (item.license === 'pro_monthly') {
+        user.licenseExpiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      } else if (item.license === 'pro_annual') {
+        user.licenseExpiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 days
+      } else {
+        user.licenseExpiryDate = null;
+      }
+
+      await user.save();
+      modifiedCount++;
+      updatedUsers.push({
+        id: user.id,
+        license: user.license,
+        licenseExpiryDate: user.licenseExpiryDate
+      });
+    }
+
+    res.json({
+      success: true,
+      count: modifiedCount,
+      updatedUsers,
+      message: `បានកែប្រែ និងអនុម័ត License ចំនួន ${modifiedCount} នាក់ដោយជោគជ័យ!`
+    });
+  } catch (err) {
+    console.error('[Admin Batch License Error]', err);
+    res.status(500).json({ success: false, message: 'បរាជ័យក្នុងការកែប្រែ License ជាបាច់', error: err.message });
+  }
+});
+
 app.delete('/api/admin/users/:id', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const target = await User.findOne({ id: id });
