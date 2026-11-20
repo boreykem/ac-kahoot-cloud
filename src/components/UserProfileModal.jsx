@@ -184,7 +184,7 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUpdat
               </div>
               <div className="flex flex-col gap-1 mt-1">
                 <p className="text-[11px] text-emerald-200/80">
-                  ✅ គណនីរបស់អ្នកត្រូវបានដំឡើងកម្រិតទៅជា Pro រួចរាល់! អាចបង្កើតបន្ទប់លេងសិស្សមិនកំណត់។
+                  ✅ គណនី Pro មានសិទ្ធិប្រើប្រាស់ពេញលេញគ្រប់មុខងារ៖ បង្កើតវិញ្ញាសា & សំណួរ AI មិនកំណត់ (Unlimited AI) និងបើកបន្ទប់លេងសិស្សរហូតដល់ ៥០០+ នាក់ ដូច Pro Lifetime ដែរ!
                 </p>
                 {currentUser.licenseExpiryDate && (
                   <p className="text-[11px] text-amber-300 font-bold bg-amber-900/30 px-2 py-1 rounded-lg border border-amber-500/30 w-max">

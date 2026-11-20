@@ -3,7 +3,11 @@ import { Sparkles, X, Loader2, Check, Key, HelpCircle, BookOpen, Layers, Externa
 import { sound } from '../utils/audioEngine';
 
 export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz, onAppendQuestions, initialLevel, currentUser, lang = 'km' }) {
-  const isPro = currentUser?.license && currentUser.license !== 'free';
+  const isPro = Boolean(
+    (currentUser?.license && currentUser.license.toLowerCase() !== 'free' && currentUser.license.toLowerCase() !== 'trial') || 
+    (currentUser?.role === 'superadmin') || 
+    (currentUser?.email === 'baureykem@gmail.com')
+  );
   const [aiUsageCount, setAiUsageCount] = useState(
     currentUser?.aiGenerationsCount ?? parseInt(localStorage.getItem('ai_generations_count') || '0', 10)
   );
@@ -684,6 +688,11 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
                         <Check className="w-3 h-3" />
                         <span>👑 Key ផ្ទាល់ខ្លួន (Unlimited AI)</span>
                       </span>
+                    ) : isPro ? (
+                      <span className="text-[10px] bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-yellow-300 px-2.5 py-0.5 rounded-full border border-yellow-400/50 font-bold flex items-center gap-1 shadow-md">
+                        <Sparkles className="w-3 h-3 text-yellow-300" />
+                        <span>👑 គណនី Pro (បង្កើតសំណួរ AI មិនកំណត់)</span>
+                      </span>
                     ) : (
                       <span className="text-[10px] bg-amber-500/20 text-yellow-300 px-2.5 py-0.5 rounded-full border border-yellow-500/40 font-bold flex items-center gap-1">
                         <span>✨ កូតា AI ឥតគិតថ្លៃ៖</span>
@@ -829,6 +838,10 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
                     <span className="text-emerald-300 font-bold">
                       ✨ API Key ផ្ទាល់ខ្លួនត្រូវបានចងចាំក្នុង Browser របស់អ្នក សម្រាប់បង្កើតសំណួររហ័សគ្មានដែនកំណត់ (Unlimited AI)។
                     </span>
+                  ) : isPro ? (
+                    <span className="text-emerald-300 font-medium">
+                      👑 <strong>គណនី Pro របស់អ្នកមានសិទ្ធិបង្កើតសំណួរ AI មិនកំណត់ (Unlimited AI)</strong> ជាមួយ Server ដោយផ្ទាល់។ លោកគ្រូក៏អាចភ្ជាប់ Google Gemini API Key ផ្ទាល់ខ្លួនបន្ថែមប្រសិនបើចង់ប្រើ Key ដាច់ដោយឡែក។
+                    </span>
                   ) : (
                     <span className="text-yellow-300/90 font-medium">
                       💡 <strong>មិនទាន់មាន API Key មែនទេ?</strong> ទុកប្រអប់ខាងលើឱ្យនៅទទេ ដើម្បីប្រើកូតា AI ឥតគិតថ្លៃ ២៥ លើកពី Server។ ភ្ជាប់ Free Key ផ្ទាល់ខ្លួនពី Google ដើម្បីបង្កើតមិនកំណត់!
@@ -836,7 +849,7 @@ export default function AIGeneratorModal({ isOpen, onClose, onSaveGeneratedQuiz,
                   )}
                 </p>
 
-                {!apiKey && aiUsageCount >= 25 && (
+                {!isPro && !apiKey && aiUsageCount >= 25 && (
                   <div className="p-3 rounded-xl bg-red-500/20 border border-red-400/40 text-red-200 text-xs font-bold flex items-start gap-2">
                     <span>⚠️</span>
                     <span>លោកគ្រូ/អ្នកគ្រូ បានប្រើប្រាស់កូតា AI ឥតគិតថ្លៃគ្រប់ ២៥ លើកហើយ! សូមចុចយក និងបញ្ចូល Gemini API Key ឥតគិតថ្លៃផ្ទាល់ខ្លួនខាងលើ ដើម្បីបន្តបង្កើតសំណួរដោយ AI មិនកំណត់ (Unlimited)។</span>

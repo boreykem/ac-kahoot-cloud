@@ -1942,6 +1942,12 @@ app.post('/api/generate-quiz', async (req, res) => {
 
   const defaultSystemKey = currentBotPricing.geminiApiKey || process.env.GEMINI_API_KEY || DEFAULT_TRIAL_GEMINI_KEY;
 
+  const isProUser = Boolean(
+    (user && user.license && user.license.toLowerCase() !== 'free' && user.license.toLowerCase() !== 'trial') || 
+    (user && user.role === 'superadmin') || 
+    (machineLicense && machineLicense.valid)
+  );
+
   if (!activeApiKey) {
     if (!user) {
       return res.status(401).json({
@@ -1950,21 +1956,23 @@ app.post('/api/generate-quiz', async (req, res) => {
       });
     }
 
-    // Option 1 (Hybrid Model): 25 free AI generations from server key, then require personal free key for unlimited
+    // Hybrid Model: Free tier accounts get 25 free AI generations from server key,
+    // WHILE ALL PRO TIERS (pro_monthly, pro_annual, PRO_LIFETIME, VIP_SCHOOL) GET 100% UNLIMITED AI GENERATIONS!
     const currentUsage = user.aiGenerationsCount || 0;
-    if (currentUsage >= FREE_SERVER_AI_QUOTA) {
+    if (!isProUser && currentUsage >= FREE_SERVER_AI_QUOTA) {
       return res.status(403).json({
         success: false,
         quotaExceeded: true,
-        message: '🎉 លោកគ្រូ/អ្នកគ្រូ បានប្រើប្រាស់កូតា AI ឥតគិតថ្លៃគ្រប់ ២៥ លើកហើយ! ដើម្បីបន្តបង្កើតសំណួរ AI ដោយមិនកំណត់ (Unlimited) ពេញមួយជីវិត សូមភ្ជាប់ Google Gemini API Key ឥតគិតថ្លៃផ្ទាល់ខ្លួនរបស់អ្នក (ចំណាយពេលត្រឹម ៣០ វិនាទី)។'
+        message: '🎉 លោកគ្រូ/អ្នកគ្រូ បានប្រើប្រាស់កូតា AI ឥតគិតថ្លៃគ្រប់ ២៥ លើកហើយ! ដើម្បីបន្តបង្កើតសំណួរ AI ដោយមិនកំណត់ (Unlimited) ពេញមួយជីវិត សូម Upgrade ទៅកាន់ Pro ឬភ្ជាប់ Google Gemini API Key ឥតគិតថ្លៃផ្ទាល់ខ្លួនរបស់អ្នក។'
       });
     }
     activeApiKey = defaultSystemKey;
-    isTrialUsage = true;
-    remainingTrialCount = Math.max(0, FREE_SERVER_AI_QUOTA - (currentUsage + 1));
+    isTrialUsage = !isProUser; // Pro users are NEVER marked as trial usage
+    remainingTrialCount = isProUser ? 'unlimited' : Math.max(0, FREE_SERVER_AI_QUOTA - (currentUsage + 1));
   } else {
     // Teacher provided their own Gemini API key: Unlimited usage!
     isTrialUsage = false;
+    remainingTrialCount = 'unlimited';
   }
 
   // Determine context source: uploaded file text or typed topic
@@ -2484,8 +2492,11 @@ io.on('connection', (socket) => {
       return socket.emit('player:error', { message: 'ការប្រកួតបានចាប់ផ្តើមរួចហើយ មិនអាចចូលបានទេ!' });
     }
 
-    // Free Tier Room Capacity: Max 5 Players
-    if (room.hostLicense === 'free' && room.players.size >= 5) {
+    // Free Tier Room Capacity: Max 5 Players (Pro Monthly, Pro Annual, Pro Lifetime & VIP School have unlimited capacity up to 500+ players)
+    const hostLic = (room.hostLicense || 'free').toLowerCase();
+    const isProHost = hostLic !== 'free' && hostLic !== 'trial' && hostLic !== 'free_tier';
+
+    if (!isProHost && room.players.size >= 5) {
       return socket.emit('player:error', { 
         message: 'បន្ទប់នេះបានពេញហើយ (គណនី Free កំណត់ត្រឹម ៥ នាក់)។ សូមទាក់ទងលោកគ្រូដើម្បី Upgrade ទៅកាន់ Pro!' 
       });
