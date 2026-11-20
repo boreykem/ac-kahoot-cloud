@@ -1042,7 +1042,7 @@ app.get('/api/admin/users', verifyToken, isAdmin, async (req, res) => {
 app.post('/api/admin/users/:id/license', verifyToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { license } = req.body;
-  const user = await User.findOne({ id: id });
+  const user = (await User.findOne({ id: id })) || (mongoose.isValidObjectId(id) ? await User.findById(id) : null);
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
   user.license = license || 'free';
@@ -1072,7 +1072,7 @@ app.post('/api/admin/users/batch-licenses', verifyToken, isAdmin, async (req, re
 
     for (const item of updates) {
       if (!item.id) continue;
-      const user = await User.findOne({ id: item.id });
+      const user = (await User.findOne({ id: item.id })) || (mongoose.isValidObjectId(item.id) ? await User.findById(item.id) : null);
       if (!user) continue;
 
       user.license = item.license || 'free';
